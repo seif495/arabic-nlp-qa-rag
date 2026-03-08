@@ -66,6 +66,7 @@ repo/
 │   ├── ms2/
 │   └── ms3/
 ├── configs/
+│   ├── general/
 │   ├── ms1/
 │   ├── ms2/
 │   └── ms3/
@@ -76,7 +77,8 @@ repo/
     │   ├── constants.py
     │   ├── logging_utils.py
     │   ├── seed.py
-    │   └── schemas.py
+    │   ├── schemas.py
+    │   └── config_loader.py
     ├── ms1/
     │   ├── ingest/
     │   ├── profiling/
@@ -141,9 +143,20 @@ Outputs of one stage must be saved explicitly and reused by later stages instead
 
 Notebooks may be used for exploration, debugging, and visualization, but core logic must live in src/.
 
-### 8. Configurations are milestone-scoped
+### 8. Configurations are YAML-only and centrally loaded
 
-Each milestone must have its own configuration space under configs/ms1, configs/ms2, and configs/ms3.
+The project will not use `.env` files.
+All configuration values must be stored as YAML files under `configs/` and loaded through a dedicated shared loader script in `src/common/config_loader.py`.
+
+The configuration space is sharded into four scopes:
+
+- `configs/general/`
+- `configs/ms1/`
+- `configs/ms2/`
+- `configs/ms3/`
+
+Default values are non-negotiable: every non-sensitive configuration field must define an explicit default value.
+Any required sensitive value (for example, API keys, tokens, or credentials) must be validated at startup and fail fast with a clear, actionable error message when missing or invalid.
 
 ### 9. Experiments are not production code
 
