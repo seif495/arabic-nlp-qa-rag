@@ -41,3 +41,22 @@ The system evolves through three connected milestones:
 3. Milestone 3: Build a RAG system over the cleaned data, add semantic caching, and run structured prompt/context experiments.
 
 This progression moves from raw data understanding, to neural modeling, to retrieval-augmented generation and system-level experimentation.
+
+## 6. Execution Model
+
+All pipeline functionality must be accessible through CLI entrypoints.
+
+No milestone logic should rely on ad hoc scripts or notebooks as the primary execution interface.
+
+Canonical commands:
+
+python -m src.cli.ms1 ...
+python -m src.cli.ms2 ...
+python -m src.cli.ms3 ...
+
+This ensures:
+
+- reproducibility
+- consistent usage
+- simplified debugging
+- standardized experiment execution
