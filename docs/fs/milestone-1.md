@@ -17,6 +17,7 @@ Milestone 1 focuses on understanding and preparing the Arabic dataset before neu
 - Identified noise and linguistic irregularities.
 - Normalized Arabic text and corrected spelling inconsistencies where needed.
 - Prepared data ready for neural architectures in subsequent milestones.
+- Canonical path and output naming contract documented in `docs/fs/milestone-1-artifact-map.md`.
 
 ## 6.3 Modules
 
@@ -42,3 +43,12 @@ The milestone implementation must support the following capabilities:
 - Technical report (`.md`, 2 pages) including design reasoning, insights, output analysis, and limitations.
 - One-to-one discussion evaluation.
 - Evaluation snapshot taken from the last commit before the Milestone 1 deadline (14 March 2026, 11:59 pm).
+
+## 6.6 Ticket Source of Truth
+
+Milestone 1 implementation tickets are tracked in:
+
+- `docs/tickets/ms1/roadmap.md`
+- `docs/tickets/ms1/alice.md`
+- `docs/tickets/ms1/bob.md`
+- `docs/tickets/ms1/charly.md`

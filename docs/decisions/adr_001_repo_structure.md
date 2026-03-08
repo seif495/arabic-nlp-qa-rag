@@ -31,13 +31,30 @@ repo/
 ├── docs/
 │   ├── fs/
 │   │   ├── overall.md
-│   │   ├── milestone_1.md
-│   │   ├── milestone_2.md
-│   │   └── milestone_3.md
+│   │   ├── milestone-1.md
+│   │   ├── milestone-2.md
+│   │   └── milestone-3.md
 │   ├── reports/
 │   │   ├── ms1_report.md
 │   │   ├── ms2_report.md
 │   │   └── ms3_report.md
+│   ├── tickets/
+│   │   ├── README.md
+│   │   ├── ms1/
+│   │   │   ├── roadmap.md
+│   │   │   ├── alice.md
+│   │   │   ├── bob.md
+│   │   │   └── charly.md
+│   │   ├── ms2/
+│   │   │   ├── roadmap.md
+│   │   │   ├── alice.md
+│   │   │   ├── bob.md
+│   │   │   └── charly.md
+│   │   └── ms3/
+│   │       ├── roadmap.md
+│   │       ├── alice.md
+│   │       ├── bob.md
+│   │       └── charly.md
 │   └── decisions/
 │       └── adr_001_repo_structure.md
 ├── data/
@@ -161,6 +178,19 @@ Any required sensitive value (for example, API keys, tokens, or credentials) mus
 ### 9. Experiments are not production code
 
 Experimental outputs, trial runs, and ablation artifacts belong in experiments/, not in src/ or mixed into data folders.
+
+### 9.1 Ticket tracking is documentation-first
+
+Task planning and developer ownership are tracked in markdown under `docs/tickets/`.
+
+Each milestone folder must contain exactly four files:
+
+- `roadmap.md`
+- `alice.md`
+- `bob.md`
+- `charly.md`
+
+This keeps planning auditable in-repo without relying on external project management tools.
 
 ### 10. Execution must be standardized through CLI entrypoints
 

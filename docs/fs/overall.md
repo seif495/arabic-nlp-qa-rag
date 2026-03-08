@@ -60,3 +60,20 @@ This ensures:
 - consistent usage
 - simplified debugging
 - standardized experiment execution
+
+## 7. Ticket Tracking Contract
+
+Ticket planning and assignment are stored in-repo under `docs/tickets/`.
+
+- Milestone folders:
+  - `docs/tickets/ms1/`
+  - `docs/tickets/ms2/`
+  - `docs/tickets/ms3/`
+- Required files per milestone:
+  - `roadmap.md`
+  - `alice.md`
+  - `bob.md`
+  - `charly.md`
+
+The roadmap file defines milestone-level sequencing and dependency order.
+Developer files contain actionable tickets and acceptance criteria for implementation ownership.

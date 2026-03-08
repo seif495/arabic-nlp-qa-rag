@@ -58,6 +58,7 @@ Top-level structure:
 - `docs/fs/` functional specs and project framing.
 - `docs/decisions/` architecture decisions (ADRs).
 - `docs/reports/` milestone report submissions.
+- `docs/tickets/` milestone ticket board and developer assignments.
 
 ## Milestone Contracts
 
@@ -200,8 +201,13 @@ Evaluation snapshot is the last commit before each deadline.
 
 - Project description: `docs/fs/project-desc.md`
 - Overall functional spec: `docs/fs/overall.md`
+- Ticket board index: `docs/tickets/README.md`
 - Milestone specs:
   - `docs/fs/milestone-1.md`
   - `docs/fs/milestone-2.md`
   - `docs/fs/milestone-3.md`
+- Milestone ticket files:
+  - `docs/tickets/ms1/roadmap.md`
+  - `docs/tickets/ms2/roadmap.md`
+  - `docs/tickets/ms3/roadmap.md`
 - Repository ADR: `docs/decisions/adr_001_repo_structure.md`

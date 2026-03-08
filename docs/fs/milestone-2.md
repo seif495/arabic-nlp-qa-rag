@@ -67,3 +67,12 @@ The objective is to evaluate, compare, and interpret differences in model behavi
 - Technical report (`.md`, 2 pages) including design reasoning, insights, output analysis, and limitations.
 - One-to-one discussion evaluation.
 - Evaluation snapshot taken from the last commit before the Milestone 2 deadline (22 April 2026, 11:59 pm).
+
+## 6.6 Ticket Source of Truth
+
+Milestone 2 implementation tickets are tracked in:
+
+- `docs/tickets/ms2/roadmap.md`
+- `docs/tickets/ms2/alice.md`
+- `docs/tickets/ms2/bob.md`
+- `docs/tickets/ms2/charly.md`

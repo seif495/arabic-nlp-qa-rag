@@ -57,3 +57,12 @@ Design and implement a Retrieval-Augmented Generation (RAG) system over the clea
 - Technical report (`.md`, 2 pages) including design reasoning, insights, output analysis, and limitations.
 - One-to-one discussion evaluation.
 - Evaluation snapshot taken from the last commit before the Milestone 3 deadline (16 May 2026, 11:59 pm).
+
+## 6.6 Ticket Source of Truth
+
+Milestone 3 implementation tickets are tracked in:
+
+- `docs/tickets/ms3/roadmap.md`
+- `docs/tickets/ms3/alice.md`
+- `docs/tickets/ms3/bob.md`
+- `docs/tickets/ms3/charly.md`
