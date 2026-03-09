@@ -1,0 +1,11 @@
+{
+  "data_external": "data/external",
+  "data_interim": "data/interim",
+  "data_processed_ms1": "data/processed/ms1",
+  "experiments_ms1": "experiments/ms1",
+  "docs_reports": "docs/reports"
+}
+
+Source:
+- Python API: `resolve_ms1_paths().as_relative_manifest()`
+- Module: `src/common/paths.py`

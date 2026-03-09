@@ -132,3 +132,17 @@ docs/
 Path: `docs/fs/artifacts/ms1/ms1-path-manifest.sample.json`
 
 This sample uses relative canonical paths only, matching the current contract.
+
+## 8) Path resolution example output
+
+Path: `docs/fs/artifacts/ms1/ms1-path-resolution-example.txt`
+
+This example shows representative output from `resolve_ms1_paths().as_relative_manifest()`.
+
+## 9) Acceptance status note
+
+At this scaffold stage, there are no implementation modules under `src/ms1/*.py` yet.
+The requirement "All milestone modules import path helpers" is therefore enforced as:
+
+- all future MS1 modules must import from `src/common/paths.py`, and
+- no module may hardcode ad hoc relative canonical paths.
