@@ -79,7 +79,7 @@ Hard blocker
 
 ---
 
-## MS1-INFRA-03: Milestone 1 CLI Interface
+## MS1-INFRA-03: Milestone 1 CLI Interface [DONE]
 
 ### Description
 
@@ -174,7 +174,7 @@ Hard blocker
 
 ### Notes
 
-- Dependencies: all previous MS1 feature tickets
+- Dependencies: all previous MS1 feature tickets (`MS1-INFRA-01` [DONE], `MS1-INFRA-02` [DONE], `MS1-INFRA-03` [DONE]; remaining feature-ticket dependencies pending)
 - Story points: 1
 
 ---
@@ -209,5 +209,5 @@ Hard blocker
 
 ### Notes
 
-- Dependencies: all MS1 tickets
+- Dependencies: all MS1 tickets (including `MS1-INFRA-03` [DONE])
 - Story points: 2
