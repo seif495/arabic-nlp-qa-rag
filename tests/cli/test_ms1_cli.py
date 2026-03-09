@@ -36,10 +36,12 @@ class TestMS1CLICommands(unittest.TestCase):
             text=True,
         )
         self.assertEqual(completed.returncode, 0)
-        self.assertIn("[profile] status=ok", completed.stdout)
-        self.assertIn("[detect-irregularities] status=ok", completed.stdout)
-        self.assertIn("[normalize] status=ok", completed.stdout)
-        self.assertIn("[build-dataset] status=ok", completed.stdout)
+        lines = [line for line in completed.stdout.splitlines() if line.strip()]
+        self.assertGreaterEqual(len(lines), 4)
+        self.assertIn("[profile] status=ok", lines[0])
+        self.assertIn("[detect-irregularities] status=ok", lines[1])
+        self.assertIn("[normalize] status=ok", lines[2])
+        self.assertIn("[build-dataset] status=ok", lines[3])
 
 
 class TestMS1CLIDelegation(unittest.TestCase):
