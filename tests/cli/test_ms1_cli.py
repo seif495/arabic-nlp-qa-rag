@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from src.cli import ms1
 from src.ms1.orchestration import CommandResult
@@ -56,11 +56,13 @@ class TestMS1CLIDelegation(unittest.TestCase):
                     output_path="/tmp/profile",
                 ),
             ) as mock_profile,
+            patch("builtins.print") as mock_print,
         ):
             exit_code = ms1.main()
 
         self.assertEqual(exit_code, 0)
-        mock_profile.assert_called_once_with()
+        mock_profile.assert_called_once_with(ANY)
+        mock_print.assert_called_once()
 
     def test_main_returns_non_zero_on_handler_error(self) -> None:
         with (
