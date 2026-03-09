@@ -249,10 +249,25 @@ Developers should work by module ownership, not by editing the same orchestratio
 
 Generated assets must use consistent naming conventions.
 No ambiguous filenames such as final.csv, new_final.json, or test2_output.txt.
+For Milestone 1 outputs, the canonical filename pattern is:
+`ms1_<stage>_<name>_v###.<ext>`
+where all tokens are `snake_case` and `v###` is a zero-padded version counter.
 
 ### No hidden path logic
 
 All paths should be derived centrally through shared path utilities rather than scattered hardcoded strings.
+For Milestone 1, the canonical directories are:
+
+- `data/external/`
+- `data/interim/`
+- `data/processed/ms1/`
+- `experiments/ms1/`
+- `docs/reports/`
+
+Milestone 1 modules must resolve these via shared helpers in `src/common/paths.py`.
+Ad hoc relative path strings inside milestone modules are not acceptable.
+Current MS1 policy resolves repository root from the current working directory and creates missing output directories automatically.
+The detailed MS1 contract and examples are documented in `docs/fs/artifacts/ms1/ms1-artifact-map.md`.
 
 Reports must reflect implementation
 
