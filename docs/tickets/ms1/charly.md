@@ -2,7 +2,7 @@
 
 Total story points: 11
 
-## MS1-INFRA-01: Repository Paths and Artifact Layout
+## MS1-INFRA-01: Repository Paths and Artifact Layout [DONE]
 
 ### Description
 
