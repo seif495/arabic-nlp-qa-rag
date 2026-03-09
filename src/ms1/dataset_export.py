@@ -6,7 +6,7 @@ import re
 from dataclasses import asdict
 from pathlib import Path
 
-from src.common.paths import make_ms1_output_filename, resolve_ms1_paths
+from src.common.paths import MS1Paths, make_ms1_output_filename, resolve_ms1_paths
 from src.common.schemas import ProcessedDatasetRecord
 
 
@@ -61,12 +61,15 @@ def _record_linkage_is_consistent(record: ProcessedDatasetRecord) -> bool:
 
 def build_processed_dataset_records(
     repo_root: Path | None = None,
+    paths: MS1Paths | None = None,
 ) -> list[ProcessedDatasetRecord]:
-    paths = resolve_ms1_paths(repo_root=repo_root)
-    transcript_contexts = _load_transcript_contexts(paths.data_external / "transcripts")
+    resolved_paths = paths or resolve_ms1_paths(repo_root=repo_root)
+    transcript_contexts = _load_transcript_contexts(
+        resolved_paths.data_external / "transcripts"
+    )
     records: list[ProcessedDatasetRecord] = []
 
-    for qa_file in sorted((paths.data_external / "qa").glob("*_QA.csv")):
+    for qa_file in sorted((resolved_paths.data_external / "qa").glob("*_QA.csv")):
         with qa_file.open(encoding="utf-8", newline="") as file_obj:
             reader = csv.DictReader(file_obj)
             for row in reader:
@@ -112,21 +115,24 @@ def run_dataset_sanity_check(
     }
 
 
-def export_processed_dataset(repo_root: Path | None = None) -> Path:
-    paths = resolve_ms1_paths(repo_root=repo_root)
-    dataset_file = paths.data_processed_ms1 / make_ms1_output_filename(
+def export_processed_dataset(
+    repo_root: Path | None = None,
+    paths: MS1Paths | None = None,
+) -> Path:
+    resolved_paths = paths or resolve_ms1_paths(repo_root=repo_root)
+    dataset_file = resolved_paths.data_processed_ms1 / make_ms1_output_filename(
         stage="dataset",
         name="processed",
         version=1,
         ext="jsonl",
     )
 
-    records = build_processed_dataset_records(repo_root=repo_root)
+    records = build_processed_dataset_records(paths=resolved_paths)
     with dataset_file.open("w", encoding="utf-8") as file_obj:
         for record in records:
             file_obj.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
 
-    summary_file = paths.data_processed_ms1 / make_ms1_output_filename(
+    summary_file = resolved_paths.data_processed_ms1 / make_ms1_output_filename(
         stage="dataset",
         name="validation_summary",
         version=1,

@@ -43,7 +43,7 @@ def normalize(repo_root: Path | None = None) -> CommandResult:
 
 def build_dataset(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms1_paths(repo_root=repo_root)
-    export_processed_dataset(repo_root=repo_root)
+    export_processed_dataset(paths=paths)
     return CommandResult(
         command="build-dataset",
         status="ok",
