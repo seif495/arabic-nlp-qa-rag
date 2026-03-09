@@ -62,6 +62,17 @@ class TestMS1CLIDelegation(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         mock_profile.assert_called_once_with()
 
+    def test_main_returns_non_zero_on_handler_error(self) -> None:
+        with (
+            patch.object(sys, "argv", ["ms1", "profile"]),
+            patch(
+                "src.cli.ms1.orchestration.profile", side_effect=RuntimeError("boom")
+            ),
+        ):
+            exit_code = ms1.main()
+
+        self.assertEqual(exit_code, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

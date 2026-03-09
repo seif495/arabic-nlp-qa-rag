@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -40,14 +41,18 @@ def main() -> int:
         "build-dataset": orchestration.build_dataset,
     }
 
-    if args.command == "run-all":
-        for result in orchestration.run_all(repo_root=repo_root):
-            _print_result(result)
-        return 0
+    try:
+        if args.command == "run-all":
+            for result in orchestration.run_all(repo_root=repo_root):
+                _print_result(result)
+            return 0
 
-    result = handlers[args.command](repo_root)
-    _print_result(result)
-    return 0
+        result = handlers[args.command](repo_root)
+        _print_result(result)
+        return 0
+    except Exception as exc:
+        print(f"[{args.command}] status=error error={exc}", file=sys.stderr)
+        return 1
 
 
 def _print_result(result: CommandResult) -> None:
