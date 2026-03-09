@@ -17,7 +17,7 @@ Milestone 1 focuses on understanding and preparing the Arabic dataset before neu
 - Identified noise and linguistic irregularities.
 - Normalized Arabic text and corrected spelling inconsistencies where needed.
 - Prepared data ready for neural architectures in subsequent milestones.
-- Canonical path and output naming contract documented in `docs/fs/milestone-1-artifact-map.md`.
+- Canonical path and output naming contract documented in `docs/fs/artifacts/ms1/ms1-artifact-map.md`.
 
 ## 6.3 Modules
 

@@ -1,0 +1,22 @@
+{
+  "ticket": "MS1-INFRA-01",
+  "milestone": "ms1",
+  "sample": true,
+  "resolution_policy": {
+    "repo_root_source": "cwd",
+    "path_format": "relative",
+    "create_output_dirs": true
+  },
+  "canonical_dirs": {
+    "data_external": "data/external",
+    "data_interim": "data/interim",
+    "data_processed_ms1": "data/processed/ms1",
+    "experiments_ms1": "experiments/ms1",
+    "docs_reports": "docs/reports"
+  },
+  "filename_contract": {
+    "pattern": "ms1_<stage>_<name>_v###.<ext>",
+    "case_style": "snake_case",
+    "version_token": "v###"
+  }
+}

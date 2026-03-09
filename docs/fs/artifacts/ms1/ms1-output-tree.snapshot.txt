@@ -1,0 +1,23 @@
+data/
+  external/
+    transcripts/
+    qa/
+  interim/
+    normalized/
+      ms1_normalization_normalized_transcripts_v001.parquet
+    tokenized/
+      ms1_tokenization_token_sequences_v001.parquet
+    splits/
+      ms1_dataset_build_qa_split_train_v001.parquet
+      ms1_dataset_build_qa_split_dev_v001.parquet
+      ms1_dataset_build_qa_split_test_v001.parquet
+  processed/
+    ms1/
+      ms1_cleaning_cleaned_corpus_v001.parquet
+      ms1_profiling_text_stats_v001.json
+experiments/
+  ms1/
+    ms1_evaluation_cleaning_metrics_v001.json
+docs/
+  reports/
+    ms1_report_v001.md
