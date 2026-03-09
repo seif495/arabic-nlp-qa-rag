@@ -61,6 +61,21 @@ class TestSharedSchemas(unittest.TestCase):
             transcript_json["raw_text"], EXAMPLE_TRANSCRIPT_RECORD.raw_text
         )
 
+    def test_prepared_sample_json_example_is_in_sync(self) -> None:
+        prepared_example_path = (
+            Path(__file__).resolve().parents[2]
+            / "docs"
+            / "fs"
+            / "artifacts"
+            / "ms1"
+            / "ms1-prepared-dataset-sample.example.json"
+        )
+        with prepared_example_path.open(encoding="utf-8") as file_obj:
+            prepared_json = json.load(file_obj)
+        self.assertEqual(
+            prepared_json["input_text"], EXAMPLE_PREPARED_DATASET_SAMPLE.input_text
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
