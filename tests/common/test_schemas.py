@@ -24,6 +24,12 @@ class TestSharedSchemas(unittest.TestCase):
         self.assertIsInstance(EXAMPLE_QA_RECORD, QARecord)
         self.assertEqual(EXAMPLE_QA_RECORD.transcript_id, "tr_0001")
         self.assertGreaterEqual(EXAMPLE_QA_RECORD.answer_start_char, 0)
+        start = EXAMPLE_QA_RECORD.answer_start_char
+        end = start + len(EXAMPLE_QA_RECORD.answer_text)
+        self.assertEqual(
+            EXAMPLE_TRANSCRIPT_RECORD.raw_text[start:end],
+            EXAMPLE_QA_RECORD.answer_text,
+        )
 
     def test_cleaned_record_example_matches_schema(self) -> None:
         self.assertIsInstance(EXAMPLE_CLEANED_RECORD, CleanedRecord)
