@@ -66,7 +66,7 @@ EXAMPLE_PREPARED_DATASET_SAMPLE = PreparedDatasetSample(
     sample_id="sample_0001",
     qa_id="qa_0001",
     transcript_id="tr_0001",
-    input_text="سؤال: ما موضوع الحلقة؟\nسياق: اهلا وسهلا بكم في الحلقة الاولى",
+    input_text="سؤال: ما موضوع الحلقة؟\nسياق: الحلقة مقدمة عن المشروع",
     target_text="الحلقة مقدمة عن المشروع",
     split="train",
 )
