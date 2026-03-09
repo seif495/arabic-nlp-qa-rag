@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.common.paths import resolve_ms1_paths
+from src.ms1.dataset_export import export_processed_dataset
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ def normalize(repo_root: Path | None = None) -> CommandResult:
 
 def build_dataset(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms1_paths(repo_root=repo_root)
+    export_processed_dataset(repo_root=repo_root)
     return CommandResult(
         command="build-dataset",
         status="ok",
