@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import unittest
+from pathlib import Path
 
 from src.common.schemas import (
     EXAMPLE_CLEANED_RECORD,
@@ -40,6 +42,24 @@ class TestSharedSchemas(unittest.TestCase):
         self.assertIsInstance(EXAMPLE_PREPARED_DATASET_SAMPLE, PreparedDatasetSample)
         self.assertEqual(EXAMPLE_PREPARED_DATASET_SAMPLE.qa_id, "qa_0001")
         self.assertIn(EXAMPLE_PREPARED_DATASET_SAMPLE.split, {"train", "val", "test"})
+
+    def test_transcript_json_example_is_in_sync(self) -> None:
+        transcript_example_path = (
+            Path(__file__).resolve().parents[2]
+            / "docs"
+            / "fs"
+            / "artifacts"
+            / "ms1"
+            / "ms1-transcript-record.example.json"
+        )
+        with transcript_example_path.open(encoding="utf-8") as file_obj:
+            transcript_json = json.load(file_obj)
+        self.assertEqual(
+            transcript_json["transcript_id"], EXAMPLE_TRANSCRIPT_RECORD.transcript_id
+        )
+        self.assertEqual(
+            transcript_json["raw_text"], EXAMPLE_TRANSCRIPT_RECORD.raw_text
+        )
 
 
 if __name__ == "__main__":
