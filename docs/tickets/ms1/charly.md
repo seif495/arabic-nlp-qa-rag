@@ -111,7 +111,7 @@ Soft blocker
 
 ### Notes
 
-- Dependencies: `MS1-INFRA-01`, `MS1-INFRA-02 [DONE]`
+- Dependencies: `MS1-INFRA-01`, `MS1-INFRA-02` [DONE]
 - Story points: 2
 
 ---
@@ -143,7 +143,7 @@ Soft blocker
 
 ### Notes
 
-- Dependencies: `MS1-INFRA-02 [DONE]`, `MS1-PROC-01`, `MS1-PROC-02`
+- Dependencies: `MS1-INFRA-02` [DONE], `MS1-PROC-01`, `MS1-PROC-02`
 - Story points: 3
 
 ---
