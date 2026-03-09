@@ -39,6 +39,26 @@ def _load_transcript_contexts(transcripts_dir: Path) -> dict[str, str]:
     return transcript_contexts
 
 
+def _extract_transcript_token(identifier: str) -> str:
+    token = identifier.removeprefix("cln_")
+    if "_Q" in token:
+        return token.split("_Q", maxsplit=1)[0]
+    return token
+
+
+def _record_linkage_is_consistent(record: ProcessedDatasetRecord) -> bool:
+    if not (record.transcript_id and record.qa_id and record.cleaned_record_id):
+        return False
+
+    qa_transcript_token = _extract_transcript_token(record.qa_id)
+    cleaned_transcript_token = _extract_transcript_token(record.cleaned_record_id)
+    return (
+        record.cleaned_record_id.startswith("cln_")
+        and qa_transcript_token == record.transcript_id
+        and cleaned_transcript_token == record.transcript_id
+    )
+
+
 def build_processed_dataset_records(
     repo_root: Path | None = None,
 ) -> list[ProcessedDatasetRecord]:
@@ -73,9 +93,15 @@ def build_processed_dataset_records(
 def run_dataset_sanity_check(
     records: list[ProcessedDatasetRecord],
 ) -> dict[str, int | bool]:
-    linkage_ok = all(record.transcript_id for record in records) and all(
-        record.qa_id and record.cleaned_record_id for record in records
-    )
+    if not records:
+        return {
+            "record_count": 0,
+            "split_count": 0,
+            "linkage_ok": False,
+            "usable": False,
+        }
+
+    linkage_ok = all(_record_linkage_is_consistent(record) for record in records)
     usable = bool(records) and linkage_ok
     split_count = len({record.split for record in records})
     return {

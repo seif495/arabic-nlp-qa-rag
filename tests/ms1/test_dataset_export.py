@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.common.schemas import ProcessedDatasetRecord
 from src.ms1.dataset_export import (
     build_processed_dataset_records,
     export_processed_dataset,
@@ -87,6 +88,31 @@ class TestDatasetExport(unittest.TestCase):
         self.assertEqual(summary["record_count"], 1)
         self.assertEqual(summary["split_count"], 1)
         self.assertTrue(summary["usable"])
+
+    def test_sanity_check_marks_empty_dataset_as_not_linked(self) -> None:
+        summary = run_dataset_sanity_check([])
+        self.assertEqual(summary["record_count"], 0)
+        self.assertEqual(summary["split_count"], 0)
+        self.assertFalse(summary["linkage_ok"])
+        self.assertFalse(summary["usable"])
+
+    def test_sanity_check_detects_inconsistent_linkage(self) -> None:
+        summary = run_dataset_sanity_check(
+            [
+                ProcessedDatasetRecord(
+                    sample_id="sample_vid_001_Q001",
+                    transcript_id="vid_002",
+                    qa_id="vid_001_Q001",
+                    cleaned_record_id="cln_vid_001_Q001",
+                    normalized_context="context",
+                    question_text="question",
+                    answer_text="answer",
+                    split="train",
+                )
+            ]
+        )
+        self.assertFalse(summary["linkage_ok"])
+        self.assertFalse(summary["usable"])
 
 
 if __name__ == "__main__":
