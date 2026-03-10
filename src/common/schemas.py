@@ -39,6 +39,18 @@ class PreparedDatasetSample:
     split: str
 
 
+@dataclass(frozen=True)
+class ProcessedDatasetRecord:
+    sample_id: str
+    transcript_id: str
+    qa_id: str
+    cleaned_record_id: str
+    normalized_context: str
+    question_text: str
+    answer_text: str
+    split: str
+
+
 EXAMPLE_TRANSCRIPT_RECORD = TranscriptRecord(
     transcript_id="tr_0001",
     source_path="data/external/transcripts/episode_001.txt",
@@ -68,5 +80,16 @@ EXAMPLE_PREPARED_DATASET_SAMPLE = PreparedDatasetSample(
     transcript_id="tr_0001",
     input_text="سؤال: ما موضوع الحلقة؟\nسياق: الحلقة مقدمة عن المشروع",
     target_text="الحلقة مقدمة عن المشروع",
+    split="train",
+)
+
+EXAMPLE_PROCESSED_DATASET_RECORD = ProcessedDatasetRecord(
+    sample_id="sample_0001",
+    transcript_id="tr_0001",
+    qa_id="qa_0001",
+    cleaned_record_id="cln_0001",
+    normalized_context="اهلا وسهلا بكم في الحلقة الاولى",
+    question_text="ما موضوع الحلقة؟",
+    answer_text="الحلقة مقدمة عن المشروع",
     split="train",
 )
