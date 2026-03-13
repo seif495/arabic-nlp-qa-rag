@@ -1,0 +1,96 @@
+{
+  "transcripts_processed": 13,
+  "qa_records_processed": 3890,
+  "transcript_total_tokens": 78269,
+  "transcript_tokens_changed": 15282,
+  "transcript_change_pct": 19.52,
+  "qa_total_tokens": 42889,
+  "qa_tokens_changed": 3847,
+  "qa_change_pct": 8.97,
+  "rules_applied": [
+    "remove_tatweel",
+    "remove_diacritics",
+    "normalize_alef",
+    "normalize_ya"
+  ],
+  "per_transcript": [
+    {
+      "transcript_id": "أعظم طائرة حربية  الدحيح",
+      "token_count": 5421,
+      "tokens_changed": 1075,
+      "change_pct": 19.83
+    },
+    {
+      "transcript_id": "الأخطبوط  الدحيح",
+      "token_count": 5361,
+      "tokens_changed": 1232,
+      "change_pct": 22.98
+    },
+    {
+      "transcript_id": "الساموراي  الدحيح",
+      "token_count": 4628,
+      "tokens_changed": 1013,
+      "change_pct": 21.89
+    },
+    {
+      "transcript_id": "تاج محل  الدحيح",
+      "token_count": 3782,
+      "tokens_changed": 769,
+      "change_pct": 20.33
+    },
+    {
+      "transcript_id": "جون كينيدي  الدحيح",
+      "token_count": 7886,
+      "tokens_changed": 1745,
+      "change_pct": 22.13
+    },
+    {
+      "transcript_id": "فيزياء و فلسفة الحركة  الدحيح",
+      "token_count": 6669,
+      "tokens_changed": 1295,
+      "change_pct": 19.42
+    },
+    {
+      "transcript_id": "كيف تحولت روسيا إلى إمبراطورية؟  الدحيح",
+      "token_count": 8227,
+      "tokens_changed": 1824,
+      "change_pct": 22.17
+    },
+    {
+      "transcript_id": "كيف تسيطر على عقول البشر؟  الدحيح",
+      "token_count": 6410,
+      "tokens_changed": 1446,
+      "change_pct": 22.56
+    },
+    {
+      "transcript_id": "كيف تنقل جبل وزنه 30 طن قبل أن يغرق؟  الدحيح",
+      "token_count": 5438,
+      "tokens_changed": 1045,
+      "change_pct": 19.22
+    },
+    {
+      "transcript_id": "مصير الأرض و الشمس و كل شيء  الدحيح",
+      "token_count": 4795,
+      "tokens_changed": 1024,
+      "change_pct": 21.36
+    },
+    {
+      "transcript_id": "معركة ذي قار  الدحيح",
+      "token_count": 7234,
+      "tokens_changed": 1552,
+      "change_pct": 21.45
+    },
+    {
+      "transcript_id": "منابع النيل  الدحيح",
+      "token_count": 7524,
+      "tokens_changed": 177,
+      "change_pct": 2.35
+    },
+    {
+      "transcript_id": "هل Citizen Kane أفضل فيلم في التاريخ؟  الدحيح",
+      "token_count": 4894,
+      "tokens_changed": 1085,
+      "change_pct": 22.17
+    }
+  ]
+}

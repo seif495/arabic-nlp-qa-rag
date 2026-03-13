@@ -14,7 +14,16 @@ dependencies = []
 ms1 = "src.cli.ms1:main"
 
 [tool.setuptools]
-packages = ["src", "src.cli", "src.ms1", "src.common"]
+packages = [
+    "src",
+    "src.cli",
+    "src.common",
+    "src.ms1",
+    "src.ms1.cleaning",
+    "src.ms1.normalization",
+    "src.ms1.spelling",
+    "src.ms1.ingest",
+]
 
 [dependency-groups]
 dev = [
