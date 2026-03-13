@@ -74,7 +74,7 @@
 <!-- AUTO-DURATION-START -->
 ## Duration Analysis Addendum (Auto-Generated)
 
-- Generated from notebook on: 2026-03-13 20:03:13
+- Generated from notebook on: 2026-03-13 22:17:45
 - Videos analyzed: 13
 - Average video length: 35:20
 - Median video length: 31:28
