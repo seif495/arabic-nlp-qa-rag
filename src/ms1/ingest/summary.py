@@ -99,6 +99,11 @@ def generate_ingest_summary(paths: Optional[MS1Paths] = None) -> dict:
     summary_file = output_path / summary_filename
     with open(summary_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
+
+    # Compatibility artifact for Alice ticket expectation
+    legacy_summary_file = output_path / "raw_loader_summary.json"
+    with open(legacy_summary_file, "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2, ensure_ascii=False)
     
     # 2. ms1_ingest_dataset_inventory_v001.md
     inventory_filename = make_ms1_output_filename("ingest", "dataset_inventory", 1, "md")
@@ -152,6 +157,7 @@ def generate_ingest_summary(paths: Optional[MS1Paths] = None) -> dict:
             f.write("All validations passed successfully.\n")
     
     print(f"Saved: {summary_file}")
+    print(f"Saved: {legacy_summary_file}")
     print(f"Saved: {inventory_file}")
     print(f"Saved: {validation_file}")
     

@@ -95,6 +95,11 @@ def run_corpus_analysis(paths=None) -> None:
     stats_path = output_dir / stats_filename
     with open(stats_path, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
+
+    # Compatibility artifact for Alice ticket expectation
+    legacy_stats_path = output_dir / "corpus_stats.json"
+    with open(legacy_stats_path, "w", encoding="utf-8") as f:
+        json.dump(stats, f, indent=2, ensure_ascii=False)
     
     # Calculate array lengths for the visual histograms
     t_tokens = [len(t.split()) for t in transcript_contents]
@@ -139,6 +144,7 @@ def run_corpus_analysis(paths=None) -> None:
         f.write("- **General shape**: \n")
         
     print(f"Stats saved: {stats_path}")
+    print(f"Stats saved: {legacy_stats_path}")
     print(f"Markdown report (with histograms) saved: {md_path}")
     print("DONE! Please review the markdown report and fill in the 'Short Observation Notes' section.")
 
