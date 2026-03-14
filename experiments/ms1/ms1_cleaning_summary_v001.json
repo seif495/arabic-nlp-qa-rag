@@ -1,0 +1,103 @@
+{
+  "transcripts_cleaned": 13,
+  "qa_records_cleaned": 3890,
+  "total_transcript_chars_before": 554294,
+  "total_transcript_chars_after": 450979,
+  "total_transcript_chars_removed": 103315,
+  "qa_chars_before": 223359,
+  "qa_chars_after": 223356,
+  "qa_chars_removed": 3,
+  "transcript_stats": [
+    {
+      "transcript_id": "أعظم طائرة حربية  الدحيح",
+      "raw_char_count": 38222,
+      "cleaned_char_count": 31165,
+      "chars_removed": 7057,
+      "reduction_pct": 18.46
+    },
+    {
+      "transcript_id": "الأخطبوط  الدحيح",
+      "raw_char_count": 38054,
+      "cleaned_char_count": 30777,
+      "chars_removed": 7277,
+      "reduction_pct": 19.12
+    },
+    {
+      "transcript_id": "الساموراي  الدحيح",
+      "raw_char_count": 34077,
+      "cleaned_char_count": 27953,
+      "chars_removed": 6124,
+      "reduction_pct": 17.97
+    },
+    {
+      "transcript_id": "تاج محل  الدحيح",
+      "raw_char_count": 26431,
+      "cleaned_char_count": 21495,
+      "chars_removed": 4936,
+      "reduction_pct": 18.68
+    },
+    {
+      "transcript_id": "جون كينيدي  الدحيح",
+      "raw_char_count": 56962,
+      "cleaned_char_count": 46276,
+      "chars_removed": 10686,
+      "reduction_pct": 18.76
+    },
+    {
+      "transcript_id": "فيزياء و فلسفة الحركة  الدحيح",
+      "raw_char_count": 47095,
+      "cleaned_char_count": 38128,
+      "chars_removed": 8967,
+      "reduction_pct": 19.04
+    },
+    {
+      "transcript_id": "كيف تحولت روسيا إلى إمبراطورية؟  الدحيح",
+      "raw_char_count": 59094,
+      "cleaned_char_count": 47976,
+      "chars_removed": 11118,
+      "reduction_pct": 18.81
+    },
+    {
+      "transcript_id": "كيف تسيطر على عقول البشر؟  الدحيح",
+      "raw_char_count": 45570,
+      "cleaned_char_count": 37045,
+      "chars_removed": 8525,
+      "reduction_pct": 18.71
+    },
+    {
+      "transcript_id": "كيف تنقل جبل وزنه 30 طن قبل أن يغرق؟  الدحيح",
+      "raw_char_count": 38574,
+      "cleaned_char_count": 31523,
+      "chars_removed": 7051,
+      "reduction_pct": 18.28
+    },
+    {
+      "transcript_id": "مصير الأرض و الشمس و كل شيء  الدحيح",
+      "raw_char_count": 33909,
+      "cleaned_char_count": 27821,
+      "chars_removed": 6088,
+      "reduction_pct": 17.95
+    },
+    {
+      "transcript_id": "معركة ذي قار  الدحيح",
+      "raw_char_count": 51260,
+      "cleaned_char_count": 41729,
+      "chars_removed": 9531,
+      "reduction_pct": 18.59
+    },
+    {
+      "transcript_id": "منابع النيل  الدحيح",
+      "raw_char_count": 49836,
+      "cleaned_char_count": 40493,
+      "chars_removed": 9343,
+      "reduction_pct": 18.75
+    },
+    {
+      "transcript_id": "هل Citizen Kane أفضل فيلم في التاريخ؟  الدحيح",
+      "raw_char_count": 35210,
+      "cleaned_char_count": 28598,
+      "chars_removed": 6612,
+      "reduction_pct": 18.78
+    }
+  ]
+}

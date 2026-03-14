@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.common.paths import resolve_ms1_paths
+from src.ms1.cleaning.cleaner import run_cleaning_pipeline
 from src.ms1.dataset_export import export_processed_dataset
+from src.ms1.normalization.normalizer import run_normalization_pipeline
+from src.ms1.spelling.detector import run_spelling_analysis
 
 
 @dataclass(frozen=True)
@@ -33,7 +36,11 @@ def detect_irregularities(repo_root: Path | None = None) -> CommandResult:
 
 
 def normalize(repo_root: Path | None = None) -> CommandResult:
+    """Run the full normalization pipeline: cleaning → normalization → spelling."""
     paths = resolve_ms1_paths(repo_root=repo_root)
+    run_cleaning_pipeline(paths=paths)
+    run_normalization_pipeline(paths=paths)
+    run_spelling_analysis(paths=paths)
     return CommandResult(
         command="normalize",
         status="ok",
