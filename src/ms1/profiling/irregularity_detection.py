@@ -445,7 +445,9 @@ def _analyze_irregularities(
 
     for category in sorted_categories:
         count = len(category_unit_ids[category])
-        percentage = round((count / total_text_units) * 100, 2) if total_text_units else 0.0
+        percentage = (
+            round((count / total_text_units) * 100, 2) if total_text_units else 0.0
+        )
         signal_breakdown = dict(
             sorted(
                 category_signal_counts[category].items(),
