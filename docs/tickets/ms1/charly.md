@@ -148,7 +148,7 @@ Soft blocker
 
 ---
 
-## MS1-INFRA-05: End-to-End Milestone Pipeline
+## MS1-INFRA-05: End-to-End Milestone Pipeline [DONE]
 
 ### Description
 
@@ -174,7 +174,7 @@ Hard blocker
 
 ### Notes
 
-- Dependencies: all previous MS1 feature tickets (`MS1-INFRA-01` [DONE], `MS1-INFRA-02` [DONE], `MS1-INFRA-03` [DONE], `MS1-INFRA-04` [DONE]; remaining feature-ticket dependencies pending)
+- Dependencies: all previous MS1 feature tickets (`MS1-INFRA-01` [DONE], `MS1-INFRA-02` [DONE], `MS1-INFRA-03` [DONE], `MS1-INFRA-04` [DONE])
 - Story points: 1
 
 ---
@@ -209,5 +209,5 @@ Hard blocker
 
 ### Notes
 
-- Dependencies: all MS1 tickets (including `MS1-INFRA-03` [DONE], `MS1-INFRA-04` [DONE])
+- Dependencies: all MS1 tickets (including `MS1-INFRA-03` [DONE], `MS1-INFRA-04` [DONE], `MS1-INFRA-05` [DONE])
 - Story points: 2
