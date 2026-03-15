@@ -609,7 +609,11 @@ def _write_markdown_summary(output_path: Path, report: dict[str, object]) -> Non
     output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def run_irregularity_detection(paths: Optional[MS1Paths] = None) -> dict[str, object]:
+def run_irregularity_detection(
+    paths: Optional[MS1Paths] = None,
+    *,
+    verbose: bool = True,
+) -> dict[str, object]:
     if paths is None:
         paths = resolve_ms1_paths()
 
@@ -628,8 +632,9 @@ def run_irregularity_detection(paths: Optional[MS1Paths] = None) -> dict[str, ob
     _write_json_report(json_path, report)
     _write_markdown_summary(markdown_path, report)
 
-    print(f"Saved irregularity report: {json_path}")
-    print(f"Saved markdown summary: {markdown_path}")
+    if verbose:
+        print(f"Saved irregularity report: {json_path}")
+        print(f"Saved markdown summary: {markdown_path}")
     return report
 
 

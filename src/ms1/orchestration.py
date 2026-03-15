@@ -22,7 +22,7 @@ class CommandResult:
 
 def profile(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms1_paths(repo_root=repo_root)
-    run_corpus_analysis(paths=paths)
+    run_corpus_analysis(paths=paths, verbose=False)
     return CommandResult(
         command="profile",
         status="ok",
@@ -32,7 +32,7 @@ def profile(repo_root: Path | None = None) -> CommandResult:
 
 def detect_irregularities(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms1_paths(repo_root=repo_root)
-    run_irregularity_detection(paths=paths)
+    run_irregularity_detection(paths=paths, verbose=False)
     return CommandResult(
         command="detect-irregularities",
         status="ok",
