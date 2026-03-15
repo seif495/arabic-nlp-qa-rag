@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.common.paths import MS1Paths, resolve_ms1_paths
+from src.common.paths import MS1Paths, make_ms1_output_filename, resolve_ms1_paths
 from src.ms1.cleaning.cleaner import run_cleaning_pipeline
 from src.ms1.dataset_export import export_processed_dataset
 from src.ms1.normalization.normalizer import run_normalization_pipeline
@@ -72,6 +72,7 @@ def run_all(repo_root: Path | None = None) -> list[CommandResult]:
         build_dataset(repo_root=repo_root),
     ]
     _write_pipeline_artifacts(paths=paths, command_results=results)
+    _validate_pipeline_outputs(paths=paths)
     return results
 
 
@@ -138,3 +139,20 @@ def _write_pipeline_artifacts(
         ),
         encoding="utf-8",
     )
+
+
+def _validate_pipeline_outputs(paths: MS1Paths) -> None:
+    required_paths = [
+        paths.data_interim,
+        paths.data_interim / "normalized",
+        paths.data_processed_ms1,
+        paths.data_processed_ms1
+        / make_ms1_output_filename("dataset", "processed", 1, "jsonl"),
+        paths.experiments_ms1,
+        paths.experiments_ms1 / "ms1_pipeline_execution_log_v001.md",
+        paths.experiments_ms1 / "ms1_pipeline_artifact_manifest_v001.json",
+    ]
+    missing = [str(path) for path in required_paths if not path.exists()]
+    if missing:
+        joined = ", ".join(missing)
+        raise RuntimeError(f"Pipeline output validation failed; missing: {joined}")
