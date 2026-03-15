@@ -20,8 +20,12 @@ class CommandResult:
     output_path: str
 
 
-def profile(repo_root: Path | None = None) -> CommandResult:
-    paths = resolve_ms1_paths(repo_root=repo_root)
+def profile(
+    repo_root: Path | None = None,
+    *,
+    paths: MS1Paths | None = None,
+) -> CommandResult:
+    paths = paths or resolve_ms1_paths(repo_root=repo_root)
     run_corpus_analysis(paths=paths, verbose=False)
     return CommandResult(
         command="profile",
@@ -30,8 +34,12 @@ def profile(repo_root: Path | None = None) -> CommandResult:
     )
 
 
-def detect_irregularities(repo_root: Path | None = None) -> CommandResult:
-    paths = resolve_ms1_paths(repo_root=repo_root)
+def detect_irregularities(
+    repo_root: Path | None = None,
+    *,
+    paths: MS1Paths | None = None,
+) -> CommandResult:
+    paths = paths or resolve_ms1_paths(repo_root=repo_root)
     run_irregularity_detection(paths=paths, verbose=False)
     return CommandResult(
         command="detect-irregularities",
@@ -40,9 +48,13 @@ def detect_irregularities(repo_root: Path | None = None) -> CommandResult:
     )
 
 
-def normalize(repo_root: Path | None = None) -> CommandResult:
+def normalize(
+    repo_root: Path | None = None,
+    *,
+    paths: MS1Paths | None = None,
+) -> CommandResult:
     """Run the full normalization pipeline: cleaning → normalization → spelling."""
-    paths = resolve_ms1_paths(repo_root=repo_root)
+    paths = paths or resolve_ms1_paths(repo_root=repo_root)
     run_cleaning_pipeline(paths=paths)
     run_normalization_pipeline(paths=paths)
     run_spelling_analysis(paths=paths)
@@ -53,8 +65,12 @@ def normalize(repo_root: Path | None = None) -> CommandResult:
     )
 
 
-def build_dataset(repo_root: Path | None = None) -> CommandResult:
-    paths = resolve_ms1_paths(repo_root=repo_root)
+def build_dataset(
+    repo_root: Path | None = None,
+    *,
+    paths: MS1Paths | None = None,
+) -> CommandResult:
+    paths = paths or resolve_ms1_paths(repo_root=repo_root)
     export_processed_dataset(paths=paths)
     return CommandResult(
         command="build-dataset",
@@ -66,10 +82,10 @@ def build_dataset(repo_root: Path | None = None) -> CommandResult:
 def run_all(repo_root: Path | None = None) -> list[CommandResult]:
     paths = resolve_ms1_paths(repo_root=repo_root)
     results = [
-        profile(repo_root=repo_root),
-        detect_irregularities(repo_root=repo_root),
-        normalize(repo_root=repo_root),
-        build_dataset(repo_root=repo_root),
+        profile(paths=paths),
+        detect_irregularities(paths=paths),
+        normalize(paths=paths),
+        build_dataset(paths=paths),
     ]
     _write_pipeline_artifacts(paths=paths, command_results=results)
     _validate_pipeline_outputs(paths=paths)
