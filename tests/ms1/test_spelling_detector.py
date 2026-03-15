@@ -1,10 +1,8 @@
 """Tests for MS1-ANALYSIS-03: Spelling Inconsistency Detection."""
 from __future__ import annotations
 
-import pytest
 
 from src.ms1.spelling.detector import (
-    UNIFICATION_THRESHOLD,
     apply_unification,
     detect_spelling_inconsistencies,
 )

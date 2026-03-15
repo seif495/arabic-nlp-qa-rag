@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import re
-from collections import Counter
 from pathlib import Path
 
 from src.common.paths import MS1Paths, make_ms1_output_filename, resolve_ms1_paths

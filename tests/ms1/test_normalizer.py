@@ -1,7 +1,6 @@
 """Tests for MS1-PROC-02: Arabic Character Normalization."""
 from __future__ import annotations
 
-import pytest
 
 from src.ms1.normalization.normalizer import normalize_arabic
 
