@@ -151,12 +151,12 @@ def _write_pipeline_artifacts(
 def _as_repo_relative_output_path(output_path: str, repo_root: Path) -> str:
     output = Path(output_path)
     if not output.is_absolute():
-        return str(output)
+        return str(output).replace("\\", "/")
 
     try:
-        return str(output.relative_to(repo_root))
+        return str(output.relative_to(repo_root)).replace("\\", "/")
     except ValueError:
-        return str(output)
+        return str(output).replace("\\", "/")
 
 
 def _validate_pipeline_outputs(paths: MS1Paths) -> None:

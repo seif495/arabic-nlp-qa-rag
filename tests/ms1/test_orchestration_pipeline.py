@@ -82,6 +82,8 @@ class TestMS1PipelineRunAll(unittest.TestCase):
                 manifest_payload["command_outputs"]["build-dataset"],
                 "data/processed/ms1",
             )
+            for output_path in manifest_payload["command_outputs"].values():
+                self.assertNotIn("\\", output_path)
             self.assertNotIn(
                 str(repo_root),
                 log_text,
