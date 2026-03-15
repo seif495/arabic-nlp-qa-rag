@@ -66,6 +66,26 @@ class TestMS1PipelineRunAll(unittest.TestCase):
                 manifest_payload["canonical_directories"]["experiments_ms1"],
                 "experiments/ms1",
             )
+            self.assertEqual(
+                manifest_payload["command_outputs"]["profile"],
+                "experiments/ms1",
+            )
+            self.assertEqual(
+                manifest_payload["command_outputs"]["detect-irregularities"],
+                "experiments/ms1",
+            )
+            self.assertEqual(
+                manifest_payload["command_outputs"]["normalize"],
+                "data/interim/normalized",
+            )
+            self.assertEqual(
+                manifest_payload["command_outputs"]["build-dataset"],
+                "data/processed/ms1",
+            )
+            self.assertNotIn(
+                str(repo_root),
+                log_text,
+            )
 
     def _seed_minimal_external_dataset(self, repo_root: Path) -> None:
         transcripts_dir = repo_root / "data" / "external" / "transcripts"

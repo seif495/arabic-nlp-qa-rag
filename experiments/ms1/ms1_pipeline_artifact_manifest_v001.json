@@ -6,10 +6,10 @@
     "build-dataset"
   ],
   "command_outputs": {
-    "profile": "/Users/omar_yasser/Goba_Stuff/College_Shit/CSEN1076/prj/milestone-1/root/experiments/ms1",
-    "detect-irregularities": "/Users/omar_yasser/Goba_Stuff/College_Shit/CSEN1076/prj/milestone-1/root/experiments/ms1",
-    "normalize": "/Users/omar_yasser/Goba_Stuff/College_Shit/CSEN1076/prj/milestone-1/root/data/interim/normalized",
-    "build-dataset": "/Users/omar_yasser/Goba_Stuff/College_Shit/CSEN1076/prj/milestone-1/root/data/processed/ms1"
+    "profile": "experiments/ms1",
+    "detect-irregularities": "experiments/ms1",
+    "normalize": "data/interim/normalized",
+    "build-dataset": "data/processed/ms1"
   },
   "canonical_directories": {
     "data_external": "data/external",

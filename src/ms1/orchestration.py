@@ -87,18 +87,25 @@ def _write_pipeline_artifacts(
     )
     limitations_path = paths.experiments_ms1 / "ms1_pipeline_known_limitations_v001.md"
 
+    command_outputs = {
+        result.command: _as_repo_relative_output_path(
+            output_path=result.output_path,
+            repo_root=paths.repo_root,
+        )
+        for result in command_results
+    }
+
     log_lines = ["# MS1 Pipeline Execution Log", "", "## Command Results", ""]
     for result in command_results:
+        output_path = command_outputs[result.command]
         log_lines.append(
-            f"- `{result.command}` status={result.status} output={result.output_path}"
+            f"- `{result.command}` status={result.status} output={output_path}"
         )
     execution_log_path.write_text("\n".join(log_lines) + "\n", encoding="utf-8")
 
     manifest = {
         "commands_executed": [result.command for result in command_results],
-        "command_outputs": {
-            result.command: result.output_path for result in command_results
-        },
+        "command_outputs": command_outputs,
         "canonical_directories": paths.as_relative_manifest(),
         "pipeline_artifacts": {
             "execution_log": str(execution_log_path.relative_to(paths.repo_root)),
@@ -139,6 +146,17 @@ def _write_pipeline_artifacts(
         ),
         encoding="utf-8",
     )
+
+
+def _as_repo_relative_output_path(output_path: str, repo_root: Path) -> str:
+    output = Path(output_path)
+    if not output.is_absolute():
+        return str(output)
+
+    try:
+        return str(output.relative_to(repo_root))
+    except ValueError:
+        return str(output)
 
 
 def _validate_pipeline_outputs(paths: MS1Paths) -> None:
