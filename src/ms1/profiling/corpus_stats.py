@@ -66,12 +66,13 @@ def generate_ascii_histogram(data: List[int], bins: int = 10) -> str:
     return "\n".join(lines)
 
 
-def run_corpus_analysis(paths=None) -> None:
+def run_corpus_analysis(paths=None, *, verbose: bool = True) -> None:
     """Main function to generate analysis artifacts."""
     if paths is None:
         paths = resolve_ms1_paths()
 
-    print("Loading data...")
+    if verbose:
+        print("Loading data...")
     transcripts = load_transcripts(paths)
     qa_records = load_qa_files(paths)
 
@@ -80,7 +81,8 @@ def run_corpus_analysis(paths=None) -> None:
     questions = [r["question"] for r in qa_records if "question" in r]
     answers = [r["answer"] for r in qa_records if "answer" in r]
 
-    print("Computing lengths and statistics...")
+    if verbose:
+        print("Computing lengths and statistics...")
     stats = {
         "transcripts": compute_text_stats(transcript_contents),
         "questions": compute_text_stats(questions),
@@ -144,12 +146,13 @@ def run_corpus_analysis(paths=None) -> None:
         f.write(
             "- Auto-generated report; add interpretation notes in the notebook export step.\n"
         )
-    print(f"Stats saved: {stats_path}")
-    print(f"Stats saved: {legacy_stats_path}")
-    print(f"Markdown report (with histograms) saved: {md_path}")
-    print(
-        "DONE! Please review the markdown report and fill in the 'Short Observation Notes' section."
-    )
+    if verbose:
+        print(f"Stats saved: {stats_path}")
+        print(f"Stats saved: {legacy_stats_path}")
+        print(f"Markdown report (with histograms) saved: {md_path}")
+        print(
+            "DONE! Please review the markdown report and fill in the 'Short Observation Notes' section."
+        )
 
 
 if __name__ == "__main__":
