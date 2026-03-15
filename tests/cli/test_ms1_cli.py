@@ -37,7 +37,7 @@ class TestMS1CLICommands(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0)
         lines = [line for line in completed.stdout.splitlines() if line.strip()]
-        self.assertGreaterEqual(len(lines), 4)
+        self.assertEqual(len(lines), 4)
         self.assertIn("[profile] status=ok", lines[0])
         self.assertIn("[detect-irregularities] status=ok", lines[1])
         self.assertIn("[normalize] status=ok", lines[2])
