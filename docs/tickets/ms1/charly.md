@@ -37,7 +37,7 @@ Hard blocker
 
 ---
 
-## MS1-INFRA-02: Core Data Structures and Python Schemas
+## MS1-INFRA-02: Core Data Structures and Python Schemas [DONE]
 
 ### Description
 
@@ -79,7 +79,7 @@ Hard blocker
 
 ---
 
-## MS1-INFRA-03: Milestone 1 CLI Interface
+## MS1-INFRA-03: Milestone 1 CLI Interface [DONE]
 
 ### Description
 
@@ -111,12 +111,12 @@ Soft blocker
 
 ### Notes
 
-- Dependencies: `MS1-INFRA-01`, `MS1-INFRA-02`
+- Dependencies: `MS1-INFRA-01`, `MS1-INFRA-02` [DONE]
 - Story points: 2
 
 ---
 
-## MS1-INFRA-04: Prepared Dataset for Downstream Modeling
+## MS1-INFRA-04: Prepared Dataset for Downstream Modeling [DONE]
 
 ### Description
 
@@ -143,7 +143,7 @@ Soft blocker
 
 ### Notes
 
-- Dependencies: `MS1-INFRA-02`, `MS1-PROC-01`, `MS1-PROC-02`
+- Dependencies: `MS1-INFRA-02` [DONE], `MS1-PROC-01`, `MS1-PROC-02`
 - Story points: 3
 
 ---
@@ -174,7 +174,7 @@ Hard blocker
 
 ### Notes
 
-- Dependencies: all previous MS1 feature tickets
+- Dependencies: all previous MS1 feature tickets (`MS1-INFRA-01` [DONE], `MS1-INFRA-02` [DONE], `MS1-INFRA-03` [DONE], `MS1-INFRA-04` [DONE]; remaining feature-ticket dependencies pending)
 - Story points: 1
 
 ---
@@ -209,5 +209,5 @@ Hard blocker
 
 ### Notes
 
-- Dependencies: all MS1 tickets
+- Dependencies: all MS1 tickets (including `MS1-INFRA-03` [DONE], `MS1-INFRA-04` [DONE])
 - Story points: 2
