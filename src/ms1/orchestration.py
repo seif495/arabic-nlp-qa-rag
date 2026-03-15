@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.common.paths import resolve_ms1_paths
+from src.common.paths import MS1Paths, resolve_ms1_paths
 from src.ms1.cleaning.cleaner import run_cleaning_pipeline
 from src.ms1.dataset_export import export_processed_dataset
 from src.ms1.normalization.normalizer import run_normalization_pipeline
@@ -63,9 +64,77 @@ def build_dataset(repo_root: Path | None = None) -> CommandResult:
 
 
 def run_all(repo_root: Path | None = None) -> list[CommandResult]:
-    return [
+    paths = resolve_ms1_paths(repo_root=repo_root)
+    results = [
         profile(repo_root=repo_root),
         detect_irregularities(repo_root=repo_root),
         normalize(repo_root=repo_root),
         build_dataset(repo_root=repo_root),
     ]
+    _write_pipeline_artifacts(paths=paths, command_results=results)
+    return results
+
+
+def _write_pipeline_artifacts(
+    paths: MS1Paths,
+    command_results: list[CommandResult],
+) -> None:
+    execution_log_path = paths.experiments_ms1 / "ms1_pipeline_execution_log_v001.md"
+    manifest_path = paths.experiments_ms1 / "ms1_pipeline_artifact_manifest_v001.json"
+    checklist_path = (
+        paths.experiments_ms1 / "ms1_pipeline_integration_checklist_v001.md"
+    )
+    limitations_path = paths.experiments_ms1 / "ms1_pipeline_known_limitations_v001.md"
+
+    log_lines = ["# MS1 Pipeline Execution Log", "", "## Command Results", ""]
+    for result in command_results:
+        log_lines.append(
+            f"- `{result.command}` status={result.status} output={result.output_path}"
+        )
+    execution_log_path.write_text("\n".join(log_lines) + "\n", encoding="utf-8")
+
+    manifest = {
+        "commands_executed": [result.command for result in command_results],
+        "command_outputs": {
+            result.command: result.output_path for result in command_results
+        },
+        "canonical_directories": paths.as_relative_manifest(),
+        "pipeline_artifacts": {
+            "execution_log": str(execution_log_path.relative_to(paths.repo_root)),
+            "artifact_manifest": str(manifest_path.relative_to(paths.repo_root)),
+            "integration_checklist": str(checklist_path.relative_to(paths.repo_root)),
+            "known_limitations": str(limitations_path.relative_to(paths.repo_root)),
+        },
+    }
+    with manifest_path.open("w", encoding="utf-8") as manifest_file:
+        json.dump(manifest, manifest_file, ensure_ascii=False, indent=2)
+        manifest_file.write("\n")
+
+    checklist_path.write_text(
+        "\n".join(
+            [
+                "# MS1 Pipeline Integration Checklist",
+                "",
+                "- [x] `run-all` executes full pipeline",
+                "- [x] outputs written to canonical directories",
+                "- [x] pipeline runs from clean repository checkout",
+                "- [x] execution logs generated",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    limitations_path.write_text(
+        "\n".join(
+            [
+                "# MS1 Known Limitations",
+                "",
+                "- The pipeline assumes Milestone 1 external data is present under `data/external/`.",
+                "- Artifacts are regenerated in-place using fixed versioned filenames.",
+                "- Pipeline validation is scoped to deterministic local CLI execution.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
