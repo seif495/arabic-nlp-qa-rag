@@ -1,0 +1,27 @@
+{
+  "commands_executed": [
+    "profile",
+    "detect-irregularities",
+    "normalize",
+    "build-dataset"
+  ],
+  "command_outputs": {
+    "profile": "/Users/omar_yasser/Goba_Stuff/College_Shit/CSEN1076/prj/milestone-1/root/experiments/ms1",
+    "detect-irregularities": "/Users/omar_yasser/Goba_Stuff/College_Shit/CSEN1076/prj/milestone-1/root/experiments/ms1",
+    "normalize": "/Users/omar_yasser/Goba_Stuff/College_Shit/CSEN1076/prj/milestone-1/root/data/interim/normalized",
+    "build-dataset": "/Users/omar_yasser/Goba_Stuff/College_Shit/CSEN1076/prj/milestone-1/root/data/processed/ms1"
+  },
+  "canonical_directories": {
+    "data_external": "data/external",
+    "data_interim": "data/interim",
+    "data_processed_ms1": "data/processed/ms1",
+    "experiments_ms1": "experiments/ms1",
+    "docs_reports": "docs/reports"
+  },
+  "pipeline_artifacts": {
+    "execution_log": "experiments/ms1/ms1_pipeline_execution_log_v001.md",
+    "artifact_manifest": "experiments/ms1/ms1_pipeline_artifact_manifest_v001.json",
+    "integration_checklist": "experiments/ms1/ms1_pipeline_integration_checklist_v001.md",
+    "known_limitations": "experiments/ms1/ms1_pipeline_known_limitations_v001.md"
+  }
+}
