@@ -169,6 +169,8 @@ def _validate_pipeline_outputs(paths: MS1Paths) -> None:
         paths.experiments_ms1,
         paths.experiments_ms1 / "ms1_pipeline_execution_log_v001.md",
         paths.experiments_ms1 / "ms1_pipeline_artifact_manifest_v001.json",
+        paths.experiments_ms1 / "ms1_pipeline_integration_checklist_v001.md",
+        paths.experiments_ms1 / "ms1_pipeline_known_limitations_v001.md",
     ]
     missing = [str(path) for path in required_paths if not path.exists()]
     if missing:
