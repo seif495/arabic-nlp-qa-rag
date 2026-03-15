@@ -7,6 +7,8 @@ from src.common.paths import resolve_ms1_paths
 from src.ms1.cleaning.cleaner import run_cleaning_pipeline
 from src.ms1.dataset_export import export_processed_dataset
 from src.ms1.normalization.normalizer import run_normalization_pipeline
+from src.ms1.profiling.corpus_stats import run_corpus_analysis
+from src.ms1.profiling.irregularity_detection import run_irregularity_detection
 from src.ms1.spelling.detector import run_spelling_analysis
 
 
@@ -19,19 +21,21 @@ class CommandResult:
 
 def profile(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms1_paths(repo_root=repo_root)
+    run_corpus_analysis(paths=paths)
     return CommandResult(
         command="profile",
         status="ok",
-        output_path=str(paths.experiments_ms1 / "profile"),
+        output_path=str(paths.experiments_ms1),
     )
 
 
 def detect_irregularities(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms1_paths(repo_root=repo_root)
+    run_irregularity_detection(paths=paths)
     return CommandResult(
         command="detect-irregularities",
         status="ok",
-        output_path=str(paths.experiments_ms1 / "irregularities"),
+        output_path=str(paths.experiments_ms1),
     )
 
 
