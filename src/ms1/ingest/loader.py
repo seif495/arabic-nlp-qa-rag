@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import List, Optional
 import csv
@@ -80,7 +79,7 @@ def load_qa_files(paths: Optional[MS1Paths] = None) -> List[dict]:
                 reader = csv.DictReader(f)
                 for row in reader:
                     row["source_file"] = file_path.name
-                    row["source_video_id"] = file_path.stem
+                    row["source_video_id"] = file_path.stem.removesuffix("_QA")
                     qa_records.append(row)
     
     return qa_records
@@ -119,13 +118,24 @@ def validate_pairing(paths: Optional[MS1Paths] = None) -> dict:
     
     transcripts_path = paths.data_external / "transcripts"
     qa_path = paths.data_external / "qa"
-    
+
+    if not transcripts_path.exists() or not qa_path.exists():
+        raise FileNotFoundError(
+            f"Missing required directory: transcripts={transcripts_path.exists()} qa={qa_path.exists()}"
+        )
+
     # Get transcript filenames (stems), normalized
     transcript_ids = {_normalize_title(f.stem) for f in transcripts_path.glob("*.txt")}
-    
+
+    if not transcript_ids:
+        raise ValueError(f"No transcript files found in {transcripts_path}")
+
     # Extract unique video_titles from QA CSVs, normalized
     qa_video_titles = set()
-    for csv_file in qa_path.glob("*.csv"):
+    csv_files = list(qa_path.glob("*.csv"))
+    if not csv_files:
+        raise ValueError(f"No QA files found in {qa_path}")
+    for csv_file in csv_files:
         with open(csv_file, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
