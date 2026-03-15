@@ -96,12 +96,18 @@ def _write_pipeline_artifacts(
     paths: MS1Paths,
     command_results: list[CommandResult],
 ) -> None:
-    execution_log_path = paths.experiments_ms1 / "ms1_pipeline_execution_log_v001.md"
-    manifest_path = paths.experiments_ms1 / "ms1_pipeline_artifact_manifest_v001.json"
-    checklist_path = (
-        paths.experiments_ms1 / "ms1_pipeline_integration_checklist_v001.md"
+    execution_log_path = paths.experiments_ms1 / _pipeline_artifact_filename(
+        "execution_log", "md"
     )
-    limitations_path = paths.experiments_ms1 / "ms1_pipeline_known_limitations_v001.md"
+    manifest_path = paths.experiments_ms1 / _pipeline_artifact_filename(
+        "artifact_manifest", "json"
+    )
+    checklist_path = paths.experiments_ms1 / _pipeline_artifact_filename(
+        "integration_checklist", "md"
+    )
+    limitations_path = paths.experiments_ms1 / _pipeline_artifact_filename(
+        "known_limitations", "md"
+    )
 
     command_outputs = {
         result.command: _as_repo_relative_output_path(
@@ -175,6 +181,10 @@ def _as_repo_relative_output_path(output_path: str, repo_root: Path) -> str:
         return str(output).replace("\\", "/")
 
 
+def _pipeline_artifact_filename(name: str, ext: str) -> str:
+    return make_ms1_output_filename("pipeline", name, 1, ext)
+
+
 def _validate_pipeline_outputs(paths: MS1Paths) -> None:
     required_paths = [
         paths.data_interim,
@@ -183,10 +193,12 @@ def _validate_pipeline_outputs(paths: MS1Paths) -> None:
         paths.data_processed_ms1
         / make_ms1_output_filename("dataset", "processed", 1, "jsonl"),
         paths.experiments_ms1,
-        paths.experiments_ms1 / "ms1_pipeline_execution_log_v001.md",
-        paths.experiments_ms1 / "ms1_pipeline_artifact_manifest_v001.json",
-        paths.experiments_ms1 / "ms1_pipeline_integration_checklist_v001.md",
-        paths.experiments_ms1 / "ms1_pipeline_known_limitations_v001.md",
+        paths.experiments_ms1 / _pipeline_artifact_filename("execution_log", "md"),
+        paths.experiments_ms1
+        / _pipeline_artifact_filename("artifact_manifest", "json"),
+        paths.experiments_ms1
+        / _pipeline_artifact_filename("integration_checklist", "md"),
+        paths.experiments_ms1 / _pipeline_artifact_filename("known_limitations", "md"),
     ]
     missing = [str(path) for path in required_paths if not path.exists()]
     if missing:
