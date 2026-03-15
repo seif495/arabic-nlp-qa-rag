@@ -1,4 +1,5 @@
 """Tests for MS1-PROC-02: Arabic Character Normalization."""
+
 from __future__ import annotations
 
 

@@ -4,6 +4,7 @@ MS1-PROC-01: Deterministic Cleaning Pipeline
 Implements conservative deterministic cleaning rules for transcript and QA text.
 All rules are order-dependent, deterministic, and repeatable.
 """
+
 from __future__ import annotations
 
 import json

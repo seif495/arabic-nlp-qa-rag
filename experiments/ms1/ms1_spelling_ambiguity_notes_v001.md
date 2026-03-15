@@ -6,7 +6,9 @@ Total canonical groups with variants: 838
 Unified (high-confidence): 108  
 Left unchanged (ambiguous): 730
 
-A group is **ambiguous** when no single spelling form covers ≥ 90 % of occurrences. These cases are documented below but **not changed** to preserve author intent and avoid introducing errors.
+
+A group is **ambiguous** when no single spelling form covers ≥ 90 % of occurrences.  These cases are documented below but **not changed** to preserve author intent and avoid introducing errors.
+
 
 ---
 

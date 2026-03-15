@@ -22,6 +22,7 @@ in the original are *inconsistent spelling variants*.
 A variant is unified (changed) when ≥ 90 % of occurrences already use one
 spelling.  All other cases are left as-is and noted in the ambiguity catalog.
 """
+
 from __future__ import annotations
 
 import json
@@ -157,9 +158,7 @@ def apply_unification(text: str, unified_map: dict[str, str]) -> str:
         token = match.group()
         return unified_map.get(token, token)
 
-    pattern = re.compile(
-        r"\b(" + "|".join(re.escape(k) for k in unified_map) + r")\b"
-    )
+    pattern = re.compile(r"\b(" + "|".join(re.escape(k) for k in unified_map) + r")\b")
     return pattern.sub(_replace, text)
 
 
@@ -315,8 +314,10 @@ def _write_ambiguity_notes(
         for i, group in enumerate(ambiguous_groups[:30], 1):
             lines.append(f"### {i}. Canonical form: `{group['canonical']}`\n")
             lines.append(f"- Total occurrences: {group['total_occurrences']}")
-            lines.append(f"- Dominant form: `{group['dominant_form']}` "
-                         f"({group['dominant_pct']} %)")
+            lines.append(
+                f"- Dominant form: `{group['dominant_form']}` "
+                f"({group['dominant_pct']} %)"
+            )
             lines.append("- Variants:")
             for v in group["variants"]:
                 lines.append(f"  - `{v['form']}`: {v['count']} ({v['pct']} %)")

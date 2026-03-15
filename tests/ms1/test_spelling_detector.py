@@ -1,4 +1,5 @@
 """Tests for MS1-ANALYSIS-03: Spelling Inconsistency Detection."""
+
 from __future__ import annotations
 
 

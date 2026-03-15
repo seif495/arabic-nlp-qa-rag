@@ -4,6 +4,7 @@ MS1-PROC-02: Arabic Character Normalization
 Implements character-level normalization rules for Arabic text and documents
 the chosen policy and associated risks.
 """
+
 from __future__ import annotations
 
 import json
@@ -29,7 +30,7 @@ _ALEF_MAP: dict[str, str] = {
 
 # Alef maqsura → ya  ى U+0649 → ي U+064A
 _YA_MAP: dict[str, str] = {
-    "\u0649": "\u064A",
+    "\u0649": "\u064a",
 }
 
 # Tatweel / kashida U+0640
@@ -187,14 +188,10 @@ def run_normalization_pipeline(
         "qa_records_processed": len(qa_records),
         "transcript_total_tokens": total_tokens,
         "transcript_tokens_changed": total_changed,
-        "transcript_change_pct": round(
-            100.0 * total_changed / max(total_tokens, 1), 2
-        ),
+        "transcript_change_pct": round(100.0 * total_changed / max(total_tokens, 1), 2),
         "qa_total_tokens": qa_total_tokens,
         "qa_tokens_changed": qa_changed_tokens,
-        "qa_change_pct": round(
-            100.0 * qa_changed_tokens / max(qa_total_tokens, 1), 2
-        ),
+        "qa_change_pct": round(100.0 * qa_changed_tokens / max(qa_total_tokens, 1), 2),
         "rules_applied": [
             "remove_tatweel",
             "remove_diacritics",
@@ -227,9 +224,7 @@ def run_normalization_pipeline(
         json.dump(examples, fh, indent=2, ensure_ascii=False)
 
     # Artifact 4: risk analysis
-    risk_path = output_dir / make_ms1_output_filename(
-        "normalization", "risk", 1, "md"
-    )
+    risk_path = output_dir / make_ms1_output_filename("normalization", "risk", 1, "md")
     _write_risk_doc(risk_path)
 
     return summary
