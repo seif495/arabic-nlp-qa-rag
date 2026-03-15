@@ -142,13 +142,8 @@ def run_corpus_analysis(paths=None) -> None:
 
         f.write("## Short Observation Notes\n\n")
         f.write(
-            "*(TODO: Analyze the above stats and write 3-5 bullets regarding outliers, balance, length shifts, etc.)*\n"
+            "- Auto-generated report; add interpretation notes in the notebook export step.\n"
         )
-        f.write("- **Outliers**: \n")
-        f.write("- **Short/Long samples**: \n")
-        f.write("- **Imbalance**: \n")
-        f.write("- **General shape**: \n")
-
     print(f"Stats saved: {stats_path}")
     print(f"Stats saved: {legacy_stats_path}")
     print(f"Markdown report (with histograms) saved: {md_path}")
