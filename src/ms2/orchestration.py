@@ -220,7 +220,8 @@ def run_all(
         command_results.append(result)
         yield result
 
-    _write_run_all_artifacts(paths=paths, command_results=command_results)
+    if any(result.status != "skipped" for result in command_results):
+        _write_run_all_artifacts(paths=paths, command_results=command_results)
 
 
 def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:

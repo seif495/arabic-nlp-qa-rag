@@ -44,6 +44,8 @@ def test_run_all_is_idempotent_when_outputs_exist(tmp_path: Path) -> None:
 
     assert rerun
     assert all(result.status == "skipped" for result in rerun)
+    experiments_dir = tmp_path / "experiments" / "ms2"
+    assert len(list(experiments_dir.glob("run_all_log_v*.txt"))) == 1
 
 
 def test_run_all_force_from_reexecutes_selected_stage_onward(tmp_path: Path) -> None:
