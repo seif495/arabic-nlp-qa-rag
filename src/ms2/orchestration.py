@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
 
-from src.common.paths import make_ms2_output_filename, resolve_ms2_paths
+from src.common.paths import MS2Paths, make_ms2_output_filename, resolve_ms2_paths
 
 
 @dataclass(frozen=True)
@@ -423,7 +423,7 @@ def _training_budget_warning(elapsed_seconds: float, phase: str) -> str | None:
     )
 
 
-def _write_run_all_artifacts(paths: object, command_results: list[CommandResult]) -> None:
+def _write_run_all_artifacts(paths: MS2Paths, command_results: list[CommandResult]) -> None:
     log_path = _next_run_all_log_path(experiments_dir=paths.experiments_ms2)
     manifest_path = paths.experiments_ms2 / make_ms2_output_filename(
         "pipeline", "artifact_manifest", 1, "json"
