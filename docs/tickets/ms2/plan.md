@@ -33,7 +33,7 @@ The MS2 directory layout adds, at minimum: `data/processed/ms2/` (tokenizer, cha
 - `src/common/paths.py` (or a new `src/common/paths_ms2.py` co-located with the MS1 helpers) exposes:
   - `MS2Paths` dataclass with fields for processed data root, experiment root, tokenizer path, char vocab path, TFRecord shard dir, run-output dir, and report dir.
   - `resolve_ms2_paths(..., create_dirs: bool = True)` that auto-creates writable dirs (mirroring MS1 behavior).
-  - `make_ms2_output_filename(stage, name, version, ext)` enforcing the snake_case `ms2_<stage>_<name>_v###.<ext>` contract.
+  - `make_ms2_output_filename(stage, name, version, ext)` enforcing the snake*case `ms2*<stage>\_<name>\_v###.<ext>` contract.
 - A `src/ms2/runtime.py` module exposes `configure_runtime(seed: int, mixed_precision: bool = True, deterministic: bool = True)` that:
   - Sets the global Keras mixed-precision policy to `mixed_float16` when enabled (ADR §1.5).
   - Calls `tf.keras.utils.set_random_seed(seed)` and `tf.config.experimental.enable_op_determinism()` for deterministic seeded runs (ADR §1.9).
