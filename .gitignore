@@ -3,6 +3,7 @@ __pycache__/
 *.py[codz]
 *$py.class
 todo.md
+experiments/
 
 # C extensions
 *.so
