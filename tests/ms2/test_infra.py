@@ -6,7 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from src.common.paths import make_ms2_output_filename, resolve_ms2_paths
+from src.common.paths import (
+    list_ms2_cleaned_input_files,
+    make_ms2_output_filename,
+    resolve_ms2_paths,
+)
 from src.ms2.runtime import configure_runtime
 
 
@@ -16,6 +20,10 @@ def test_resolve_ms2_paths_creates_expected_dirs(tmp_path: Path) -> None:
     )
 
     assert paths.data_processed_ms2 == tmp_path / "data" / "processed" / "ms2"
+    assert (
+        paths.data_external_ms2_cleaned_input
+        == tmp_path / "data" / "external" / "ms2-cleaned-input"
+    )
     assert paths.experiments_ms2 == tmp_path / "experiments" / "ms2"
     assert paths.tokenizer_path.name == "ms2_tokenizer_bpe_4k_v001.model"
     assert paths.char_vocab_path.name == "ms2_char_vocab_v001.json"
@@ -31,6 +39,7 @@ def test_resolve_ms2_paths_creates_expected_dirs(tmp_path: Path) -> None:
         paths.report_dir,
     ):
         assert directory.is_dir()
+    assert not paths.data_external_ms2_cleaned_input.exists()
 
 
 def test_resolve_ms2_paths_can_skip_dir_creation(tmp_path: Path) -> None:
@@ -44,6 +53,7 @@ def test_resolve_ms2_paths_manifest_matches_snapshot(tmp_path: Path) -> None:
     paths = resolve_ms2_paths(repo_root=tmp_path, create_dirs=False)
 
     assert paths.as_relative_manifest() == {
+        "data_external_ms2_cleaned_input": "data/external/ms2-cleaned-input",
         "data_processed_ms2": "data/processed/ms2",
         "experiments_ms2": "experiments/ms2",
         "tokenizer_path": "data/processed/ms2/ms2_tokenizer_bpe_4k_v001.model",
@@ -52,6 +62,29 @@ def test_resolve_ms2_paths_manifest_matches_snapshot(tmp_path: Path) -> None:
         "run_output_dir": "experiments/ms2/model_a/13",
         "report_dir": "docs/fs/ms2",
     }
+
+
+def test_list_ms2_cleaned_input_files_reads_real_json_and_skips_examples(
+    tmp_path: Path,
+) -> None:
+    paths = resolve_ms2_paths(repo_root=tmp_path, create_dirs=False)
+    input_dir = paths.data_external_ms2_cleaned_input
+    input_dir.mkdir(parents=True)
+    real_input = input_dir / "lesson_001.json"
+    another_real_input = input_dir / "lesson_002.json"
+    real_input.write_text('{"data": []}\n', encoding="utf-8")
+    another_real_input.write_text('{"data": []}\n', encoding="utf-8")
+    (input_dir / "example.json.example").write_text('{"data": []}\n', encoding="utf-8")
+    (input_dir / "example.txt.example").write_text("template\n", encoding="utf-8")
+    (input_dir / "notes.txt").write_text("not an input\n", encoding="utf-8")
+
+    assert list_ms2_cleaned_input_files(paths) == (real_input, another_real_input)
+
+
+def test_list_ms2_cleaned_input_files_handles_missing_input_dir(tmp_path: Path) -> None:
+    paths = resolve_ms2_paths(repo_root=tmp_path, create_dirs=False)
+
+    assert list_ms2_cleaned_input_files(paths) == ()
 
 
 def test_make_ms2_output_filename_contract() -> None:

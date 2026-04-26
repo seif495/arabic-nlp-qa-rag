@@ -6,6 +6,7 @@ MS2 code must use `resolve_ms2_paths(...)` and `make_ms2_output_filename(...)` f
 
 | Name | Path | Purpose |
 | --- | --- | --- |
+| Cleaned input root | `data/external/ms2-cleaned-input` | Real MS2 input JSON files using the layout shown by `example.json.example`; `*.example` files are templates only and must not be consumed. |
 | Processed data root | `data/processed/ms2` | Tokenizer, character vocabulary, TFRecord cache, and length-analysis outputs. |
 | Experiment root | `experiments/ms2` | Per-model, per-seed run outputs. |
 | Run output dir | `experiments/ms2/<model>/<seed>` | Training curves, checkpoints, evaluation JSON, and run summaries. |
@@ -26,3 +27,7 @@ MS2 generated filenames use `ms2_<stage>_<name>_v###.<ext>`. The `stage` and `na
 ## Path Resolution Example
 
 See `docs/fs/artifacts/ms2/ms2-path-resolution-example.txt` for the canonical manifest emitted by `resolve_ms2_paths().as_relative_manifest()`.
+
+## Cleaned Input Selection
+
+Use `list_ms2_cleaned_input_files(resolve_ms2_paths(...))` to discover MS2 input JSON files. The helper reads from `data/external/ms2-cleaned-input`, returns only real `.json` files, and deliberately excludes template files ending in `.example`, including `example.json.example` and `example.txt.example`.

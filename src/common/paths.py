@@ -26,6 +26,7 @@ class MS1Paths:
 @dataclass(frozen=True)
 class MS2Paths:
     repo_root: Path
+    data_external_ms2_cleaned_input: Path
     data_processed_ms2: Path
     experiments_ms2: Path
     tokenizer_path: Path
@@ -36,6 +37,9 @@ class MS2Paths:
 
     def as_relative_manifest(self) -> dict[str, str]:
         return {
+            "data_external_ms2_cleaned_input": _to_relative(
+                self.data_external_ms2_cleaned_input, self.repo_root
+            ),
             "data_processed_ms2": _to_relative(
                 self.data_processed_ms2, self.repo_root
             ),
@@ -91,6 +95,10 @@ def resolve_ms2_paths(
     experiments_ms2 = root / "experiments" / "ms2"
     paths = MS2Paths(
         repo_root=root,
+        data_external_ms2_cleaned_input=root
+        / "data"
+        / "external"
+        / "ms2-cleaned-input",
         data_processed_ms2=data_processed_ms2,
         experiments_ms2=experiments_ms2,
         tokenizer_path=data_processed_ms2
@@ -107,6 +115,19 @@ def resolve_ms2_paths(
         _ensure_ms2_output_dirs(paths)
 
     return paths
+
+
+def list_ms2_cleaned_input_files(paths: MS2Paths) -> tuple[Path, ...]:
+    if not paths.data_external_ms2_cleaned_input.exists():
+        return ()
+
+    return tuple(
+        sorted(
+            path
+            for path in paths.data_external_ms2_cleaned_input.glob("*.json")
+            if path.is_file() and not path.name.endswith(".example")
+        )
+    )
 
 
 def make_ms1_output_filename(stage: str, name: str, version: int, ext: str) -> str:

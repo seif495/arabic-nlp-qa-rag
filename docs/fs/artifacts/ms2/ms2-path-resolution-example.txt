@@ -1,4 +1,5 @@
 {
+  "data_external_ms2_cleaned_input": "data/external/ms2-cleaned-input",
   "data_processed_ms2": "data/processed/ms2",
   "experiments_ms2": "experiments/ms2",
   "tokenizer_path": "data/processed/ms2/ms2_tokenizer_bpe_4k_v001.model",
