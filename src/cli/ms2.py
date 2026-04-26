@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -104,7 +105,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = Path(
+        os.environ.get("MS2_REPO_ROOT", str(Path(__file__).resolve().parents[2]))
+    ).resolve()
 
     try:
         if args.command == "run-all":

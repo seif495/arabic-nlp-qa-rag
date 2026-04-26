@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from collections import Counter
 from pathlib import Path
@@ -86,12 +88,16 @@ class TestMS2CLICommands(unittest.TestCase):
         self.assertIn("--config", completed.stderr)
 
     def test_run_all_exists_and_runs_in_dependency_order(self) -> None:
-        completed = subprocess.run(
-            [sys.executable, "-m", "src.cli.ms2", "run-all"],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        with tempfile.TemporaryDirectory() as temp_repo_root:
+            env = os.environ.copy()
+            env["MS2_REPO_ROOT"] = temp_repo_root
+            completed = subprocess.run(
+                [sys.executable, "-m", "src.cli.ms2", "run-all"],
+                check=False,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
 
         self.assertEqual(completed.returncode, 0)
         lines = [line for line in completed.stdout.splitlines() if line.strip()]
