@@ -167,11 +167,11 @@ def run_all(
     root = (repo_root or Path.cwd()).resolve()
     paths = resolve_ms2_paths(repo_root=root, create_dirs=True)
     stages = _build_run_all_stages(repo_root=root)
-    force_active = force_from is None
+    force_active = False
     command_results: list[CommandResult] = []
 
     for stage in stages:
-        if not force_active and stage.phase == force_from:
+        if force_from is not None and not force_active and stage.phase == force_from:
             force_active = True
 
         if stage.expected_output.exists() and not force_active:

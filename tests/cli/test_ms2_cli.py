@@ -3,10 +3,12 @@ from __future__ import annotations
 import subprocess
 import sys
 import unittest
+from collections import Counter
 from pathlib import Path
 from unittest.mock import ANY, patch
 
 from src.cli import ms2
+from src.ms2 import orchestration
 from src.ms2.orchestration import CommandResult
 
 
@@ -21,16 +23,16 @@ COMMANDS = (
     "compare",
 )
 
-RUN_ALL_ORDER = (
-    "analyze-lengths",
-    "prep-data",
-    "train",
-    "infer",
-    "evaluate",
-    "evaluate-protocol",
-    "ablate",
-    "compare",
-)
+RUN_ALL_COUNTS = {
+    "analyze-lengths": 1,
+    "prep-data": 2,
+    "train": 6,
+    "infer": 6,
+    "evaluate": 6,
+    "evaluate-protocol": 1,
+    "ablate": 3,
+    "compare": 1,
+}
 
 
 class TestMS2CLICommands(unittest.TestCase):
@@ -93,9 +95,10 @@ class TestMS2CLICommands(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0)
         lines = [line for line in completed.stdout.splitlines() if line.strip()]
-        self.assertEqual(len(lines), len(RUN_ALL_ORDER))
-        for line, command in zip(lines, RUN_ALL_ORDER, strict=True):
-            self.assertIn(f"[{command}] status=ok", line)
+        commands = [line.split("]", maxsplit=1)[0].lstrip("[") for line in lines]
+        self.assertEqual(Counter(commands), RUN_ALL_COUNTS)
+        self.assertTrue(all("wall_clock_seconds=" in line for line in lines))
+        self.assertTrue(lines[0].startswith("[analyze-lengths] status="))
 
     def test_console_script_registered(self) -> None:
         pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
@@ -244,8 +247,13 @@ class TestMS2CLIDelegation(unittest.TestCase):
 
     def test_main_delegates_run_all_to_orchestration_order(self) -> None:
         results = [
-            CommandResult(command=command, status="ok", output_path=f"/tmp/{command}")
-            for command in RUN_ALL_ORDER
+            CommandResult(
+                command=command,
+                status="ok",
+                output_path=f"/tmp/{command}",
+                elapsed_seconds=0.5,
+            )
+            for command in orchestration.RUN_ALL_STAGE_ORDER
         ]
         with (
             patch.object(sys, "argv", ["ms2", "run-all"]),
@@ -258,12 +266,36 @@ class TestMS2CLIDelegation(unittest.TestCase):
             exit_code = ms2.main()
 
         self.assertEqual(exit_code, 0)
-        mock_run_all.assert_called_once_with(repo_root=ANY)
+        mock_run_all.assert_called_once_with(repo_root=ANY, force_from=None)
         printed = [call.args[0] for call in mock_print.call_args_list]
         self.assertEqual(
             printed,
-            [f"[{command}] status=ok output=/tmp/{command}" for command in RUN_ALL_ORDER],
+            [
+                f"[{command}] status=ok output=/tmp/{command} wall_clock_seconds=0.500000"
+                for command in orchestration.RUN_ALL_STAGE_ORDER
+            ],
         )
+
+    def test_main_forwards_run_all_force_from(self) -> None:
+        with (
+            patch.object(sys, "argv", ["ms2", "run-all", "--force-from", "train"]),
+            patch(
+                "src.cli.ms2.orchestration.run_all",
+                return_value=[
+                    CommandResult(
+                        command="train",
+                        status="ok",
+                        output_path="/tmp/train",
+                        elapsed_seconds=0.2,
+                    )
+                ],
+            ) as mock_run_all,
+            patch("builtins.print"),
+        ):
+            exit_code = ms2.main()
+
+        self.assertEqual(exit_code, 0)
+        mock_run_all.assert_called_once_with(repo_root=ANY, force_from="train")
 
     def test_main_returns_non_zero_on_handler_error(self) -> None:
         with (
