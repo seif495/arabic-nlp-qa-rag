@@ -127,6 +127,121 @@ class TestMS2CLIDelegation(unittest.TestCase):
         )
         mock_print.assert_called_once()
 
+    def test_main_forwards_prep_data_args(self) -> None:
+        with (
+            patch.object(sys, "argv", ["ms2", "prep-data", "--target-model", "b"]),
+            patch(
+                "src.cli.ms2.orchestration.prep_data",
+                return_value=CommandResult("prep-data", "ok", "/tmp/prep"),
+            ) as mock_prep_data,
+            patch("builtins.print"),
+        ):
+            exit_code = ms2.main()
+
+        self.assertEqual(exit_code, 0)
+        mock_prep_data.assert_called_once_with(repo_root=ANY, target_model="b")
+
+    def test_main_forwards_infer_args(self) -> None:
+        with (
+            patch.object(
+                sys,
+                "argv",
+                [
+                    "ms2",
+                    "infer",
+                    "--model",
+                    "b",
+                    "--seed",
+                    "91",
+                    "--split",
+                    "test",
+                    "--decoding",
+                    "beam",
+                ],
+            ),
+            patch(
+                "src.cli.ms2.orchestration.infer",
+                return_value=CommandResult("infer", "ok", "/tmp/infer"),
+            ) as mock_infer,
+            patch("builtins.print"),
+        ):
+            exit_code = ms2.main()
+
+        self.assertEqual(exit_code, 0)
+        mock_infer.assert_called_once_with(
+            repo_root=ANY,
+            model="b",
+            seed=91,
+            split="test",
+            decoding="beam",
+        )
+
+    def test_main_forwards_evaluate_args(self) -> None:
+        with (
+            patch.object(
+                sys,
+                "argv",
+                ["ms2", "evaluate", "--model", "b", "--seed", "42", "--split", "test"],
+            ),
+            patch(
+                "src.cli.ms2.orchestration.evaluate",
+                return_value=CommandResult("evaluate", "ok", "/tmp/evaluate"),
+            ) as mock_evaluate,
+            patch("builtins.print"),
+        ):
+            exit_code = ms2.main()
+
+        self.assertEqual(exit_code, 0)
+        mock_evaluate.assert_called_once_with(
+            repo_root=ANY,
+            model="b",
+            seed=42,
+            split="test",
+        )
+
+    def test_main_forwards_ablate_args(self) -> None:
+        with (
+            patch.object(
+                sys,
+                "argv",
+                ["ms2", "ablate", "--variant", "shared_layers", "--seed", "91"],
+            ),
+            patch(
+                "src.cli.ms2.orchestration.ablate",
+                return_value=CommandResult("ablate", "ok", "/tmp/ablate"),
+            ) as mock_ablate,
+            patch("builtins.print"),
+        ):
+            exit_code = ms2.main()
+
+        self.assertEqual(exit_code, 0)
+        mock_ablate.assert_called_once_with(
+            repo_root=ANY,
+            variant="shared_layers",
+            seed=91,
+        )
+
+    def test_main_delegates_no_arg_commands(self) -> None:
+        command_handlers = (
+            ("analyze-lengths", "analyze_lengths"),
+            ("evaluate-protocol", "evaluate_protocol"),
+            ("compare", "compare"),
+        )
+        for command, handler_name in command_handlers:
+            with self.subTest(command=command):
+                with (
+                    patch.object(sys, "argv", ["ms2", command]),
+                    patch(
+                        f"src.cli.ms2.orchestration.{handler_name}",
+                        return_value=CommandResult(command, "ok", f"/tmp/{command}"),
+                    ) as mock_handler,
+                    patch("builtins.print"),
+                ):
+                    exit_code = ms2.main()
+
+                self.assertEqual(exit_code, 0)
+                mock_handler.assert_called_once_with(repo_root=ANY)
+
     def test_main_delegates_run_all_to_orchestration_order(self) -> None:
         results = [
             CommandResult(command=command, status="ok", output_path=f"/tmp/{command}")
