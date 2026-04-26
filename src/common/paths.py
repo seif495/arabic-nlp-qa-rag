@@ -150,8 +150,7 @@ def make_ms2_output_filename(stage: str, name: str, version: int, ext: str) -> s
         raise ValueError("version must be >= 1")
 
     suffix = ext.lstrip(".")
-    if not suffix:
-        raise ValueError("ext must not be empty")
+    _validate_extension(suffix)
 
     return f"ms2_{stage}_{name}_v{version:03d}.{suffix}"
 
@@ -194,3 +193,11 @@ def _validate_token(value: str, token_name: str) -> None:
         raise ValueError(
             f"{token_name} must be snake_case alphanumeric with underscores"
         )
+
+
+def _validate_extension(suffix: str) -> None:
+    if not suffix:
+        raise ValueError("ext must not be empty")
+    allowed = set("abcdefghijklmnopqrstuvwxyz0123456789_.")
+    if any(ch not in allowed for ch in suffix):
+        raise ValueError("ext must be lowercase alphanumeric with underscores or dots")

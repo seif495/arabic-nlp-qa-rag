@@ -101,6 +101,8 @@ def test_make_ms2_output_filename_contract() -> None:
         ("length", "BadName", 1, "json"),
         ("length", "analysis", 0, "json"),
         ("length", "analysis", 1, ""),
+        ("length", "analysis", 1, "json/../x"),
+        ("length", "analysis", 1, "json\\x"),
     ],
 )
 def test_make_ms2_output_filename_rejects_invalid_tokens(
