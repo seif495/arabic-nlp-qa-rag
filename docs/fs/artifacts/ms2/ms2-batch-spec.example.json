@@ -1,0 +1,9 @@
+{
+  "batch_size": 32,
+  "encoder_input_shape": [32, 420],
+  "decoder_input_shape": [32, 64],
+  "decoder_target_shape": [32, 64],
+  "char_matrix_shape": [32, 420, 16],
+  "padding_id": 0,
+  "l_char_max": 16
+}
