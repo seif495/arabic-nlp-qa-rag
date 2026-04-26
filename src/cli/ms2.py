@@ -53,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument(
         "--config",
         type=Path,
+        required=True,
         help="Path to RunConfig JSON for parameter-heavy settings.",
     )
 

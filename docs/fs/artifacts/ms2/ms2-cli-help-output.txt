@@ -25,7 +25,7 @@ options:
 
 $ uv run python -m src.cli.ms2 train --help
 usage: python -m src.cli.ms2 train [-h] [--model {a,b}] [--seed {13,42,91}]
-                                   [--config CONFIG]
+                                   --config CONFIG
 
 options:
   -h, --help         show this help message and exit

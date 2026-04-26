@@ -48,10 +48,22 @@ class TestMS2CLICommands(unittest.TestCase):
                 self.assertIn("usage: python -m src.cli.ms2", completed.stdout)
 
     def test_required_single_commands_exist_and_run(self) -> None:
+        command_args = {
+            "train": [
+                "--config",
+                "docs/fs/artifacts/ms2/ms2-run-config.example.json",
+            ]
+        }
         for command in COMMANDS:
             with self.subTest(command=command):
                 completed = subprocess.run(
-                    [sys.executable, "-m", "src.cli.ms2", command],
+                    [
+                        sys.executable,
+                        "-m",
+                        "src.cli.ms2",
+                        command,
+                        *command_args.get(command, []),
+                    ],
                     check=False,
                     capture_output=True,
                     text=True,
@@ -59,6 +71,17 @@ class TestMS2CLICommands(unittest.TestCase):
 
                 self.assertEqual(completed.returncode, 0)
                 self.assertIn(f"[{command}] status=ok", completed.stdout)
+
+    def test_train_requires_config(self) -> None:
+        completed = subprocess.run(
+            [sys.executable, "-m", "src.cli.ms2", "train"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("--config", completed.stderr)
 
     def test_run_all_exists_and_runs_in_dependency_order(self) -> None:
         completed = subprocess.run(
@@ -82,7 +105,7 @@ class TestMS2CLICommands(unittest.TestCase):
 class TestMS2CLIDelegation(unittest.TestCase):
     def test_main_delegates_to_orchestration_handler(self) -> None:
         with (
-            patch.object(sys, "argv", ["ms2", "train"]),
+            patch.object(sys, "argv", ["ms2", "train", "--config", "config.json"]),
             patch(
                 "src.cli.ms2.orchestration.train",
                 return_value=CommandResult(
@@ -100,7 +123,7 @@ class TestMS2CLIDelegation(unittest.TestCase):
             repo_root=ANY,
             model="a",
             seed=13,
-            config=None,
+            config=Path("config.json"),
         )
         mock_print.assert_called_once()
 
@@ -129,7 +152,7 @@ class TestMS2CLIDelegation(unittest.TestCase):
 
     def test_main_returns_non_zero_on_handler_error(self) -> None:
         with (
-            patch.object(sys, "argv", ["ms2", "train"]),
+            patch.object(sys, "argv", ["ms2", "train", "--config", "config.json"]),
             patch("src.cli.ms2.orchestration.train", side_effect=RuntimeError("boom")),
         ):
             exit_code = ms2.main()
