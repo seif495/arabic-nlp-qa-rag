@@ -10,7 +10,7 @@ The ADR itself is `MS2-DESIGN-01` (status: design freeze, awaiting team review p
 
 ## Workload Summary
 
-- 21 tickets, 67 story points total; 2 tickets / 4 story points completed (`MS2-INFRA-01`, `MS2-INFRA-02`).
+- 21 tickets, 67 story points total; 3 tickets / 6 story points completed (`MS2-INFRA-01`, `MS2-INFRA-02`, `MS2-INFRA-03`).
 - Streams: `INFRA` (4), `DATA` (3), `TRAIN` (2), `EVAL` (2), `MODEL-A` (3), `MODEL-B` (3), `INFER` (1), `ABLATE` (1), `COMPARE` (1), `REPORT` (1).
 - Parameter / compute budgets are fixed by ADR §2.14, §3.9, §4.1: ~2.7M params for Model A, ~3.8M for Model B, ~75 min wall-clock per training run, 3 seeds (`{13, 42, 91}`) per model.
 
@@ -102,7 +102,7 @@ Hard blocker.
 
 ---
 
-## MS2-INFRA-03: MS2 CLI Interface
+## MS2-INFRA-03 [DONE]: MS2 CLI Interface
 
 ### Description
 
@@ -185,7 +185,7 @@ Soft blocker (downstream tickets can run individual sub-commands; `run-all` is f
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-03` and every implementation ticket below (`MS2-DATA-*`, `MS2-MODEL-A-*`, `MS2-MODEL-B-*`, `MS2-TRAIN-*`, `MS2-EVAL-*`, `MS2-INFER-01`, `MS2-ABLATE-01`, `MS2-COMPARE-01`).
+- Dependencies: `MS2-INFRA-03` [DONE] and every implementation ticket below (`MS2-DATA-*`, `MS2-MODEL-A-*`, `MS2-MODEL-B-*`, `MS2-TRAIN-*`, `MS2-EVAL-*`, `MS2-INFER-01`, `MS2-ABLATE-01`, `MS2-COMPARE-01`).
 - Story points: 2.
 
 ---
@@ -882,7 +882,7 @@ Each ablation must:
 
 - Reuse the same training schedule, three seeds, same evaluation protocol as the baseline (ADR §2.15 last paragraph).
 - Produce a `RunSummary` per (model, seed) under `experiments/ms2/ablations/<model>/<variant>/<seed>/`.
-- Be invocable via `python -m src.cli.ms2 ablate --variant <name>` (`MS2-INFRA-03`).
+- Be invocable via `python -m src.cli.ms2 ablate --variant <name>` (`MS2-INFRA-03` [DONE]).
 
 The implementation strategy: each variant is a small wrapper around the baseline model that flips the relevant flag in the model-construction code. Use `AblationConfig` from `MS2-INFRA-02` [DONE] to thread the variant through cleanly — do not duplicate model files.
 
@@ -1022,7 +1022,7 @@ Strict dependency-respecting linearization. Items at the same level are parallel
 
 1. `MS2-INFRA-01` [DONE] Repository paths, mixed-precision policy, reproducibility helpers
 2. `MS2-INFRA-02` [DONE] Core MS2 schemas and run configuration
-3. `MS2-INFRA-03` MS2 CLI interface
+3. `MS2-INFRA-03` [DONE] MS2 CLI interface
 4. `MS2-DATA-01` Length distribution analysis and length-cap freeze
 5. `MS2-DATA-02` BPE-4k tokenizer and character vocabulary
 6. `MS2-DATA-03` tf.data input pipeline

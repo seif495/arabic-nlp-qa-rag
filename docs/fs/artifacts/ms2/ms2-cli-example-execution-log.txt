@@ -1,0 +1,9 @@
+$ uv run python -m src.cli.ms2 run-all
+[analyze-lengths] status=ok output=<repo>/docs/fs/ms2/ms2-length-analysis-contract.md
+[prep-data] status=ok output=<repo>/data/processed/ms2/ms2_tfrecords_train_v001.dir/target_model_a
+[train] status=ok output=<repo>/experiments/ms2/model_a/13/default_config
+[infer] status=ok output=<repo>/experiments/ms2/model_a/13/dev_greedy_predictions.jsonl
+[evaluate] status=ok output=<repo>/experiments/ms2/model_a/13/dev_metrics.json
+[evaluate-protocol] status=ok output=<repo>/experiments/ms2/evaluation_protocol.json
+[ablate] status=ok output=<repo>/experiments/ms2/ablation/13/no_film.json
+[compare] status=ok output=<repo>/docs/fs/ms2/ms2-comparison-table.md
