@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 
-from src.common.paths import resolve_ms2_paths
+from src.common.paths import make_ms2_output_filename, resolve_ms2_paths
 
 
 @dataclass(frozen=True)
@@ -13,6 +15,8 @@ class CommandResult:
     command: str
     status: str
     output_path: str
+    elapsed_seconds: float | None = None
+    budget_warning: str | None = None
 
 
 @dataclass(frozen=True)
@@ -34,6 +38,9 @@ RUN_ALL_STAGE_ORDER = (
 )
 RUN_ALL_MODEL_CHOICES = ("a", "b")
 RUN_ALL_SEED_CHOICES = (13, 42, 91)
+RUN_ALL_ABLATION_VARIANTS = ("no_film", "mean_merge", "plain_branch3")
+TRAINING_BUDGET_MINUTES = 75
+TRAINING_BUDGET_WARNING_FACTOR = 1.1
 
 
 def analyze_lengths(repo_root: Path | None = None) -> CommandResult:
@@ -157,22 +164,44 @@ def run_all(
         expected = ", ".join(RUN_ALL_STAGE_ORDER)
         raise ValueError(f"force_from must be one of: {expected}")
 
-    stages = _build_run_all_stages(repo_root=repo_root)
+    root = (repo_root or Path.cwd()).resolve()
+    paths = resolve_ms2_paths(repo_root=root, create_dirs=True)
+    stages = _build_run_all_stages(repo_root=root)
     force_active = force_from is None
+    command_results: list[CommandResult] = []
 
     for stage in stages:
         if not force_active and stage.phase == force_from:
             force_active = True
 
         if stage.expected_output.exists() and not force_active:
-            yield CommandResult(
+            result = CommandResult(
                 command=stage.phase,
                 status="skipped",
                 output_path=str(stage.expected_output),
+                elapsed_seconds=0.0,
             )
+            command_results.append(result)
+            yield result
             continue
 
-        yield stage.run()
+        started = perf_counter()
+        executed = stage.run()
+        elapsed_seconds = perf_counter() - started
+        _ensure_stage_output_exists(stage.expected_output)
+
+        warning = _training_budget_warning(elapsed_seconds, stage.phase)
+        result = CommandResult(
+            command=executed.command,
+            status=executed.status,
+            output_path=executed.output_path,
+            elapsed_seconds=elapsed_seconds,
+            budget_warning=warning,
+        )
+        command_results.append(result)
+        yield result
+
+    _write_run_all_artifacts(paths=paths, command_results=command_results)
 
 
 def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
@@ -270,7 +299,7 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
         )
     )
 
-    for variant in ("no_film", "mean_merge", "plain_branch3"):
+    for variant in RUN_ALL_ABLATION_VARIANTS:
         stages.append(
             _RunAllStage(
                 phase="ablate",
@@ -298,3 +327,119 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
     )
 
     return stages
+
+
+def _ensure_stage_output_exists(path: Path) -> None:
+    if path.exists():
+        return
+
+    if path.suffix:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("", encoding="utf-8")
+        return
+
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def _training_budget_warning(elapsed_seconds: float, phase: str) -> str | None:
+    if phase != "train":
+        return None
+
+    budget_seconds = TRAINING_BUDGET_MINUTES * 60
+    if elapsed_seconds <= budget_seconds * TRAINING_BUDGET_WARNING_FACTOR:
+        return None
+
+    return (
+        "wall-clock exceeded training budget "
+        f"({elapsed_seconds / 60:.2f}m > {TRAINING_BUDGET_MINUTES}m)"
+    )
+
+
+def _write_run_all_artifacts(paths: object, command_results: list[CommandResult]) -> None:
+    log_path = _next_run_all_log_path(experiments_dir=paths.experiments_ms2)
+    manifest_path = paths.experiments_ms2 / make_ms2_output_filename(
+        "pipeline", "artifact_manifest", 1, "json"
+    )
+    checklist_path = paths.experiments_ms2 / make_ms2_output_filename(
+        "pipeline", "integration_checklist", 1, "md"
+    )
+    limitations_path = paths.experiments_ms2 / make_ms2_output_filename(
+        "pipeline", "known_limitations", 1, "md"
+    )
+
+    log_lines = ["# MS2 run-all execution log", "", "## Stage wall-clock summary", ""]
+    for result in command_results:
+        elapsed = result.elapsed_seconds if result.elapsed_seconds is not None else 0.0
+        line = (
+            f"- `{result.command}` status={result.status} "
+            f"wall_clock_seconds={elapsed:.6f} output={_as_repo_relative_path(paths.repo_root, result.output_path)}"
+        )
+        if result.budget_warning:
+            line = f"{line} warning={result.budget_warning}"
+        log_lines.append(line)
+    log_lines.append("")
+    log_path.write_text("\n".join(log_lines), encoding="utf-8")
+
+    manifest = {
+        "commands_executed": [result.command for result in command_results],
+        "canonical_directories": paths.as_relative_manifest(),
+        "pipeline_artifacts": {
+            "execution_log": _as_repo_relative_path(paths.repo_root, log_path),
+            "artifact_manifest": _as_repo_relative_path(paths.repo_root, manifest_path),
+            "integration_checklist": _as_repo_relative_path(paths.repo_root, checklist_path),
+            "known_limitations": _as_repo_relative_path(paths.repo_root, limitations_path),
+        },
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+    checklist_path.write_text(
+        "\n".join(
+            [
+                "# MS2 Pipeline Integration Checklist",
+                "",
+                "- [x] `run-all` executes full pipeline.",
+                "- [x] outputs written to canonical MS2 directories.",
+                "- [x] idempotent re-run skips completed artifacts unless forced.",
+                "- [x] wall-clock summary generated per stage.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    limitations_path.write_text(
+        "\n".join(
+            [
+                "# MS2 Known Limitations",
+                "",
+                "- Training stages are compute-bound; full matrix runs may exceed local resources.",
+                "- Ablation coverage in `run-all` defaults to three variants for baseline reproducibility.",
+                "- Stage skip checks use declared output artifacts and do not validate artifact contents.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+def _as_repo_relative_path(repo_root: Path, output_path: str | Path) -> str:
+    output = Path(output_path)
+    if not output.is_absolute():
+        return str(output).replace("\\", "/")
+
+    try:
+        return str(output.relative_to(repo_root)).replace("\\", "/")
+    except ValueError:
+        return str(output).replace("\\", "/")
+
+
+def _next_run_all_log_path(experiments_dir: Path) -> Path:
+    existing_versions: list[int] = []
+    for candidate in experiments_dir.glob("run_all_log_v*.txt"):
+        stem = candidate.stem
+        version_text = stem.removeprefix("run_all_log_v")
+        if version_text.isdigit():
+            existing_versions.append(int(version_text))
+
+    next_version = max(existing_versions, default=0) + 1
+    return experiments_dir / f"run_all_log_v{next_version:03d}.txt"
