@@ -125,10 +125,14 @@ class BatchSpec:
             shape = getattr(self, field_name)
             if any(dim <= 0 for dim in shape):
                 raise ValueError(f"{field_name} dimensions must be positive")
+            if shape[0] != self.batch_size:
+                raise ValueError(f"{field_name} batch dimension must match batch_size")
         if self.padding_id != 0:
             raise ValueError("padding_id must be 0")
         if self.l_char_max != 16:
             raise ValueError("l_char_max must be 16")
+        if self.char_matrix_shape[-1] != self.l_char_max:
+            raise ValueError("char_matrix_shape last dimension must match l_char_max")
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

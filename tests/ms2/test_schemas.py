@@ -45,6 +45,26 @@ def test_run_config_frozen_dict_is_hashable_and_field_sensitive() -> None:
 
 
 @pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"encoder_input_shape": (31, 420)},
+        {"decoder_input_shape": (31, 64)},
+        {"decoder_target_shape": (31, 64)},
+        {"char_matrix_shape": (31, 420, 16)},
+        {"char_matrix_shape": (32, 420, 8)},
+    ],
+)
+def test_batch_spec_rejects_inconsistent_shape_contract(
+    kwargs: dict[str, tuple[int, ...]],
+) -> None:
+    values = EXAMPLE_BATCH_SPEC.to_dict()
+    values.update(kwargs)
+
+    with pytest.raises(ValueError):
+        BatchSpec.from_dict(values)
+
+
+@pytest.mark.parametrize(
     ("artifact_name", "schema_type", "example"),
     [
         ("ms2-run-config.example.json", RunConfig, EXAMPLE_RUN_CONFIG),
