@@ -10,7 +10,7 @@ The ADR itself is `MS2-DESIGN-01` (status: design freeze, awaiting team review p
 
 ## Workload Summary
 
-- 21 tickets, 67 story points total.
+- 21 tickets, 67 story points total; 1 ticket / 2 story points completed (`MS2-INFRA-01`).
 - Streams: `INFRA` (4), `DATA` (3), `TRAIN` (2), `EVAL` (2), `MODEL-A` (3), `MODEL-B` (3), `INFER` (1), `ABLATE` (1), `COMPARE` (1), `REPORT` (1).
 - Parameter / compute budgets are fixed by ADR §2.14, §3.9, §4.1: ~2.7M params for Model A, ~3.8M for Model B, ~75 min wall-clock per training run, 3 seeds (`{13, 42, 91}`) per model.
 
@@ -18,7 +18,7 @@ Per-developer assignment will be performed in `alice.md`, `bob.md`, `charly.md` 
 
 ---
 
-## MS2-INFRA-01: Repository Paths, Mixed-Precision Policy, and Reproducibility Helpers
+## MS2-INFRA-01 [DONE]: Repository Paths, Mixed-Precision Policy, and Reproducibility Helpers
 
 ### Description
 
@@ -97,7 +97,7 @@ Hard blocker.
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01`.
+- Dependencies: `MS2-INFRA-01` [DONE].
 - Story points: 2.
 
 ---
@@ -146,7 +146,7 @@ Hard blocker.
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01`, `MS2-INFRA-02`.
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02`.
 - Story points: 2.
 
 ---
@@ -164,7 +164,7 @@ The pipeline orchestrator is also the right place to enforce the "matched comput
 ### Acceptance Criteria
 
 - `python -m src.cli.ms2 run-all` executes the complete MS2 pipeline.
-- Outputs land in canonical directories from `MS2-INFRA-01`.
+- Outputs land in canonical directories from `MS2-INFRA-01` [DONE].
 - Pipeline is idempotent: re-running with all artifacts present is a fast no-op.
 - `--force` flag triggers re-execution from a chosen stage onwards.
 - A wall-clock summary is emitted per stage; deviations from the ADR-declared budgets are flagged.
@@ -223,7 +223,7 @@ Hard blocker (model code reads `LENGTH_CAPS`).
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01`, `MS2-INFRA-02`. Reads MS1 handoff artifact.
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02`. Reads MS1 handoff artifact.
 - Story points: 2.
 
 ---
@@ -264,7 +264,7 @@ Hard blocker.
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01`, `MS2-DATA-01`. Reads `data/processed/ms1/ms1_dataset_processed_v001.jsonl`.
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-DATA-01`. Reads `data/processed/ms1/ms1_dataset_processed_v001.jsonl`.
 - Story points: 3.
 
 ---
@@ -355,7 +355,7 @@ Hard blocker.
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01`, `MS2-INFRA-02`. Independent of model implementations (uses dummy models in tests).
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02`. Independent of model implementations (uses dummy models in tests).
 - Story points: 3.
 
 ---
@@ -405,7 +405,7 @@ Hard blocker (`MS2-EVAL-02`, `MS2-COMPARE-01`, and the training loop's dev evalu
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01`.
+- Dependencies: `MS2-INFRA-01` [DONE].
 - Story points: 3.
 
 ---
@@ -450,7 +450,7 @@ Hard blocker (gated merge depends on all three branch outputs).
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01`, `MS2-INFRA-02`, `MS2-DATA-02`. Reads no actual data — pure layer construction with shape tests.
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02`, `MS2-DATA-02`. Reads no actual data — pure layer construction with shape tests.
 - Story points: 4.
 
 ---
@@ -593,7 +593,7 @@ Hard blocker (the entire transformer attention stack depends on this).
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01`.
+- Dependencies: `MS2-INFRA-01` [DONE].
 - Story points: 3.
 
 ---
@@ -1020,7 +1020,7 @@ Hard blocker (final deliverable).
 
 Strict dependency-respecting linearization. Items at the same level are parallelizable.
 
-1. `MS2-INFRA-01` Repository paths, mixed-precision policy, reproducibility helpers
+1. `MS2-INFRA-01` [DONE] Repository paths, mixed-precision policy, reproducibility helpers
 2. `MS2-INFRA-02` Core MS2 schemas and run configuration
 3. `MS2-INFRA-03` MS2 CLI interface
 4. `MS2-DATA-01` Length distribution analysis and length-cap freeze
