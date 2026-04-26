@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +13,27 @@ class CommandResult:
     command: str
     status: str
     output_path: str
+
+
+@dataclass(frozen=True)
+class _RunAllStage:
+    phase: str
+    run: Callable[[], CommandResult]
+    expected_output: Path
+
+
+RUN_ALL_STAGE_ORDER = (
+    "analyze-lengths",
+    "prep-data",
+    "train",
+    "infer",
+    "evaluate",
+    "evaluate-protocol",
+    "ablate",
+    "compare",
+)
+RUN_ALL_MODEL_CHOICES = ("a", "b")
+RUN_ALL_SEED_CHOICES = (13, 42, 91)
 
 
 def analyze_lengths(repo_root: Path | None = None) -> CommandResult:
@@ -127,12 +149,152 @@ def compare(repo_root: Path | None = None) -> CommandResult:
     )
 
 
-def run_all(repo_root: Path | None = None) -> Iterable[CommandResult]:
-    yield analyze_lengths(repo_root=repo_root)
-    yield prep_data(repo_root=repo_root)
-    yield train(repo_root=repo_root)
-    yield infer(repo_root=repo_root)
-    yield evaluate(repo_root=repo_root)
-    yield evaluate_protocol(repo_root=repo_root)
-    yield ablate(repo_root=repo_root)
-    yield compare(repo_root=repo_root)
+def run_all(
+    repo_root: Path | None = None,
+    force_from: str | None = None,
+) -> Iterable[CommandResult]:
+    if force_from is not None and force_from not in RUN_ALL_STAGE_ORDER:
+        expected = ", ".join(RUN_ALL_STAGE_ORDER)
+        raise ValueError(f"force_from must be one of: {expected}")
+
+    stages = _build_run_all_stages(repo_root=repo_root)
+    force_active = force_from is None
+
+    for stage in stages:
+        if not force_active and stage.phase == force_from:
+            force_active = True
+
+        if stage.expected_output.exists() and not force_active:
+            yield CommandResult(
+                command=stage.phase,
+                status="skipped",
+                output_path=str(stage.expected_output),
+            )
+            continue
+
+        yield stage.run()
+
+
+def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
+    stages: list[_RunAllStage] = []
+    stages.append(
+        _RunAllStage(
+            phase="analyze-lengths",
+            run=lambda: analyze_lengths(repo_root=repo_root),
+            expected_output=Path(analyze_lengths(repo_root=repo_root).output_path),
+        )
+    )
+
+    for model in RUN_ALL_MODEL_CHOICES:
+        stages.append(
+            _RunAllStage(
+                phase="prep-data",
+                run=lambda target_model=model: prep_data(
+                    repo_root=repo_root,
+                    target_model=target_model,
+                ),
+                expected_output=Path(
+                    prep_data(
+                        repo_root=repo_root,
+                        target_model=model,
+                    ).output_path
+                ),
+            )
+        )
+
+    for model in RUN_ALL_MODEL_CHOICES:
+        for seed in RUN_ALL_SEED_CHOICES:
+            stages.append(
+                _RunAllStage(
+                    phase="train",
+                    run=lambda model_id=model, run_seed=seed: train(
+                        repo_root=repo_root,
+                        model=model_id,
+                        seed=run_seed,
+                    ),
+                    expected_output=Path(
+                        train(
+                            repo_root=repo_root,
+                            model=model,
+                            seed=seed,
+                        ).output_path
+                    ),
+                )
+            )
+
+    for model in RUN_ALL_MODEL_CHOICES:
+        for seed in RUN_ALL_SEED_CHOICES:
+            stages.append(
+                _RunAllStage(
+                    phase="infer",
+                    run=lambda model_id=model, run_seed=seed: infer(
+                        repo_root=repo_root,
+                        model=model_id,
+                        seed=run_seed,
+                    ),
+                    expected_output=Path(
+                        infer(
+                            repo_root=repo_root,
+                            model=model,
+                            seed=seed,
+                        ).output_path
+                    ),
+                )
+            )
+
+    for model in RUN_ALL_MODEL_CHOICES:
+        for seed in RUN_ALL_SEED_CHOICES:
+            stages.append(
+                _RunAllStage(
+                    phase="evaluate",
+                    run=lambda model_id=model, run_seed=seed: evaluate(
+                        repo_root=repo_root,
+                        model=model_id,
+                        seed=run_seed,
+                    ),
+                    expected_output=Path(
+                        evaluate(
+                            repo_root=repo_root,
+                            model=model,
+                            seed=seed,
+                        ).output_path
+                    ),
+                )
+            )
+
+    stages.append(
+        _RunAllStage(
+            phase="evaluate-protocol",
+            run=lambda: evaluate_protocol(repo_root=repo_root),
+            expected_output=Path(evaluate_protocol(repo_root=repo_root).output_path),
+        )
+    )
+
+    for variant in ("no_film", "mean_merge", "plain_branch3"):
+        stages.append(
+            _RunAllStage(
+                phase="ablate",
+                run=lambda ablation_variant=variant: ablate(
+                    repo_root=repo_root,
+                    variant=ablation_variant,
+                    seed=13,
+                ),
+                expected_output=Path(
+                    ablate(
+                        repo_root=repo_root,
+                        variant=variant,
+                        seed=13,
+                    ).output_path
+                ),
+            )
+        )
+
+    stages.append(
+        _RunAllStage(
+            phase="compare",
+            run=lambda: compare(repo_root=repo_root),
+            expected_output=Path(compare(repo_root=repo_root).output_path),
+        )
+    )
+
+    return stages
