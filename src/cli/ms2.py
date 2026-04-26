@@ -95,6 +95,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_all.add_argument(
         "--force-from",
+        "--force",
+        dest="force_from",
         choices=orchestration.RUN_ALL_STAGE_ORDER,
         default=None,
         help="Force re-execution starting from the selected stage.",

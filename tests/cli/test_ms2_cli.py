@@ -303,6 +303,27 @@ class TestMS2CLIDelegation(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         mock_run_all.assert_called_once_with(repo_root=ANY, force_from="train")
 
+    def test_main_forwards_run_all_force_alias(self) -> None:
+        with (
+            patch.object(sys, "argv", ["ms2", "run-all", "--force", "evaluate"]),
+            patch(
+                "src.cli.ms2.orchestration.run_all",
+                return_value=[
+                    CommandResult(
+                        command="evaluate",
+                        status="ok",
+                        output_path="/tmp/evaluate",
+                        elapsed_seconds=0.1,
+                    )
+                ],
+            ) as mock_run_all,
+            patch("builtins.print"),
+        ):
+            exit_code = ms2.main()
+
+        self.assertEqual(exit_code, 0)
+        mock_run_all.assert_called_once_with(repo_root=ANY, force_from="evaluate")
+
     def test_main_returns_non_zero_on_handler_error(self) -> None:
         with (
             patch.object(sys, "argv", ["ms2", "train", "--config", "config.json"]),
