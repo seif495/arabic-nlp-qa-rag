@@ -12,6 +12,7 @@ dependencies = []
 
 [project.scripts]
 ms1 = "src.cli.ms1:main"
+ms2 = "src.cli.ms2:main"
 
 [tool.setuptools]
 packages = [
