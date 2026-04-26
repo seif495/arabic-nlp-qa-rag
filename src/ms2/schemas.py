@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
-from typing import Any, Literal, TypeVar, get_args
+from typing import Any, Literal, get_args
 
 ModelId = Literal["A", "B"]
 LRSchedule = Literal["cosine_with_warmup", "noam"]
@@ -13,9 +13,6 @@ AblationVariant = Literal[
     "no_pe",
     "shared_layers",
 ]
-
-_T = TypeVar("_T")
-
 
 def _freeze_json_value(value: Any) -> Any:
     if isinstance(value, dict):

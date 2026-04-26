@@ -41,7 +41,7 @@ def test_run_config_frozen_dict_is_hashable_and_field_sensitive() -> None:
     changed = RunConfig(model_id="A", seed=42)
 
     assert hash(base.frozen_dict()) == hash(same.frozen_dict())
-    assert hash(base.frozen_dict()) != hash(changed.frozen_dict())
+    assert base.frozen_dict() != changed.frozen_dict()
 
 
 @pytest.mark.parametrize(
