@@ -45,19 +45,23 @@ TRAINING_BUDGET_WARNING_FACTOR = 1.1
 
 def analyze_lengths(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
+    output_path = paths.report_dir / "ms2-length-analysis-contract.md"
+    _materialize_output_path(output_path)
     return CommandResult(
         command="analyze-lengths",
         status="ok",
-        output_path=str(paths.report_dir / "ms2-length-analysis-contract.md"),
+        output_path=str(output_path),
     )
 
 
 def prep_data(repo_root: Path | None = None, target_model: str = "a") -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
+    output_path = paths.tfrecord_shard_dir / f"target_model_{target_model}"
+    _materialize_output_path(output_path)
     return CommandResult(
         command="prep-data",
         status="ok",
-        output_path=str(paths.tfrecord_shard_dir / f"target_model_{target_model}"),
+        output_path=str(output_path),
     )
 
 
@@ -74,10 +78,12 @@ def train(
         seed=seed,
     )
     output_name = config.name if config else "default_config"
+    output_path = paths.run_output_dir / output_name
+    _materialize_output_path(output_path)
     return CommandResult(
         command="train",
         status="ok",
-        output_path=str(paths.run_output_dir / output_name),
+        output_path=str(output_path),
     )
 
 
@@ -94,10 +100,12 @@ def infer(
         model=f"model_{model}",
         seed=seed,
     )
+    output_path = paths.run_output_dir / f"{split}_{decoding}_predictions.jsonl"
+    _materialize_output_path(output_path)
     return CommandResult(
         command="infer",
         status="ok",
-        output_path=str(paths.run_output_dir / f"{split}_{decoding}_predictions.jsonl"),
+        output_path=str(output_path),
     )
 
 
@@ -113,19 +121,23 @@ def evaluate(
         model=f"model_{model}",
         seed=seed,
     )
+    output_path = paths.run_output_dir / f"{split}_metrics.json"
+    _materialize_output_path(output_path)
     return CommandResult(
         command="evaluate",
         status="ok",
-        output_path=str(paths.run_output_dir / f"{split}_metrics.json"),
+        output_path=str(output_path),
     )
 
 
 def evaluate_protocol(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
+    output_path = paths.experiments_ms2 / "evaluation_protocol.json"
+    _materialize_output_path(output_path)
     return CommandResult(
         command="evaluate-protocol",
         status="ok",
-        output_path=str(paths.experiments_ms2 / "evaluation_protocol.json"),
+        output_path=str(output_path),
     )
 
 
@@ -140,19 +152,23 @@ def ablate(
         model="ablation",
         seed=seed,
     )
+    output_path = paths.run_output_dir / f"{variant}.json"
+    _materialize_output_path(output_path)
     return CommandResult(
         command="ablate",
         status="ok",
-        output_path=str(paths.run_output_dir / f"{variant}.json"),
+        output_path=str(output_path),
     )
 
 
 def compare(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
+    output_path = paths.report_dir / "ms2-comparison-table.md"
+    _materialize_output_path(output_path)
     return CommandResult(
         command="compare",
         status="ok",
-        output_path=str(paths.report_dir / "ms2-comparison-table.md"),
+        output_path=str(output_path),
     )
 
 
@@ -188,7 +204,10 @@ def run_all(
         started = perf_counter()
         executed = stage.run()
         elapsed_seconds = perf_counter() - started
-        _ensure_stage_output_exists(stage.expected_output)
+        if not stage.expected_output.exists():
+            raise RuntimeError(
+                f"Stage '{stage.phase}' did not produce expected output: {stage.expected_output}"
+            )
 
         warning = _training_budget_warning(elapsed_seconds, stage.phase)
         result = CommandResult(
@@ -205,12 +224,13 @@ def run_all(
 
 
 def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
+    root = (repo_root or Path.cwd()).resolve()
     stages: list[_RunAllStage] = []
     stages.append(
         _RunAllStage(
             phase="analyze-lengths",
-            run=lambda: analyze_lengths(repo_root=repo_root),
-            expected_output=Path(analyze_lengths(repo_root=repo_root).output_path),
+            run=lambda: analyze_lengths(repo_root=root),
+            expected_output=_expected_analyze_lengths_output(repo_root=root),
         )
     )
 
@@ -219,14 +239,12 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
             _RunAllStage(
                 phase="prep-data",
                 run=lambda target_model=model: prep_data(
-                    repo_root=repo_root,
+                    repo_root=root,
                     target_model=target_model,
                 ),
-                expected_output=Path(
-                    prep_data(
-                        repo_root=repo_root,
-                        target_model=model,
-                    ).output_path
+                expected_output=_expected_prep_data_output(
+                    repo_root=root,
+                    target_model=model,
                 ),
             )
         )
@@ -237,16 +255,14 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
                 _RunAllStage(
                     phase="train",
                     run=lambda model_id=model, run_seed=seed: train(
-                        repo_root=repo_root,
+                        repo_root=root,
                         model=model_id,
                         seed=run_seed,
                     ),
-                    expected_output=Path(
-                        train(
-                            repo_root=repo_root,
-                            model=model,
-                            seed=seed,
-                        ).output_path
+                    expected_output=_expected_train_output(
+                        repo_root=root,
+                        model=model,
+                        seed=seed,
                     ),
                 )
             )
@@ -257,16 +273,14 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
                 _RunAllStage(
                     phase="infer",
                     run=lambda model_id=model, run_seed=seed: infer(
-                        repo_root=repo_root,
+                        repo_root=root,
                         model=model_id,
                         seed=run_seed,
                     ),
-                    expected_output=Path(
-                        infer(
-                            repo_root=repo_root,
-                            model=model,
-                            seed=seed,
-                        ).output_path
+                    expected_output=_expected_infer_output(
+                        repo_root=root,
+                        model=model,
+                        seed=seed,
                     ),
                 )
             )
@@ -277,16 +291,14 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
                 _RunAllStage(
                     phase="evaluate",
                     run=lambda model_id=model, run_seed=seed: evaluate(
-                        repo_root=repo_root,
+                        repo_root=root,
                         model=model_id,
                         seed=run_seed,
                     ),
-                    expected_output=Path(
-                        evaluate(
-                            repo_root=repo_root,
-                            model=model,
-                            seed=seed,
-                        ).output_path
+                    expected_output=_expected_evaluate_output(
+                        repo_root=root,
+                        model=model,
+                        seed=seed,
                     ),
                 )
             )
@@ -294,8 +306,8 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
     stages.append(
         _RunAllStage(
             phase="evaluate-protocol",
-            run=lambda: evaluate_protocol(repo_root=repo_root),
-            expected_output=Path(evaluate_protocol(repo_root=repo_root).output_path),
+            run=lambda: evaluate_protocol(repo_root=root),
+            expected_output=_expected_evaluate_protocol_output(repo_root=root),
         )
     )
 
@@ -304,16 +316,14 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
             _RunAllStage(
                 phase="ablate",
                 run=lambda ablation_variant=variant: ablate(
-                    repo_root=repo_root,
+                    repo_root=root,
                     variant=ablation_variant,
                     seed=13,
                 ),
-                expected_output=Path(
-                    ablate(
-                        repo_root=repo_root,
-                        variant=variant,
-                        seed=13,
-                    ).output_path
+                expected_output=_expected_ablate_output(
+                    repo_root=root,
+                    variant=variant,
+                    seed=13,
                 ),
             )
         )
@@ -321,24 +331,81 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
     stages.append(
         _RunAllStage(
             phase="compare",
-            run=lambda: compare(repo_root=repo_root),
-            expected_output=Path(compare(repo_root=repo_root).output_path),
+            run=lambda: compare(repo_root=root),
+            expected_output=_expected_compare_output(repo_root=root),
         )
     )
 
     return stages
 
 
-def _ensure_stage_output_exists(path: Path) -> None:
-    if path.exists():
-        return
-
+def _materialize_output_path(path: Path) -> None:
     if path.suffix:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("", encoding="utf-8")
         return
 
     path.mkdir(parents=True, exist_ok=True)
+
+
+def _expected_analyze_lengths_output(repo_root: Path) -> Path:
+    paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=False)
+    return paths.report_dir / "ms2-length-analysis-contract.md"
+
+
+def _expected_prep_data_output(repo_root: Path, target_model: str) -> Path:
+    paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=False)
+    return paths.tfrecord_shard_dir / f"target_model_{target_model}"
+
+
+def _expected_train_output(repo_root: Path, model: str, seed: int) -> Path:
+    paths = resolve_ms2_paths(
+        repo_root=repo_root,
+        create_dirs=False,
+        model=f"model_{model}",
+        seed=seed,
+    )
+    return paths.run_output_dir / "default_config"
+
+
+def _expected_infer_output(repo_root: Path, model: str, seed: int) -> Path:
+    paths = resolve_ms2_paths(
+        repo_root=repo_root,
+        create_dirs=False,
+        model=f"model_{model}",
+        seed=seed,
+    )
+    return paths.run_output_dir / "dev_greedy_predictions.jsonl"
+
+
+def _expected_evaluate_output(repo_root: Path, model: str, seed: int) -> Path:
+    paths = resolve_ms2_paths(
+        repo_root=repo_root,
+        create_dirs=False,
+        model=f"model_{model}",
+        seed=seed,
+    )
+    return paths.run_output_dir / "dev_metrics.json"
+
+
+def _expected_evaluate_protocol_output(repo_root: Path) -> Path:
+    paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=False)
+    return paths.experiments_ms2 / "evaluation_protocol.json"
+
+
+def _expected_ablate_output(repo_root: Path, variant: str, seed: int) -> Path:
+    paths = resolve_ms2_paths(
+        repo_root=repo_root,
+        create_dirs=False,
+        model="ablation",
+        seed=seed,
+    )
+    return paths.run_output_dir / f"{variant}.json"
+
+
+def _expected_compare_output(repo_root: Path) -> Path:
+    paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=False)
+    return paths.report_dir / "ms2-comparison-table.md"
 
 
 def _training_budget_warning(elapsed_seconds: float, phase: str) -> str | None:
