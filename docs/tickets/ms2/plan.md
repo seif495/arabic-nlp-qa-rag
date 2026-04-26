@@ -151,7 +151,7 @@ Hard blocker.
 
 ---
 
-## MS2-INFRA-04: End-to-End MS2 Pipeline (`run-all`)
+## MS2-INFRA-04 [DONE]: End-to-End MS2 Pipeline (`run-all`)
 
 ### Description
 
@@ -1038,7 +1038,7 @@ Strict dependency-respecting linearization. Items at the same level are parallel
     - `MS2-EVAL-02` Eval protocol (noise battery, leave-2-videos-out, long-dep, difficulty, conditioning viz)
     - `MS2-ABLATE-01` Ablations
 12. `MS2-COMPARE-01` Headline comparison table and diagnostic plots
-13. `MS2-INFRA-04` End-to-end MS2 pipeline integration
+13. `MS2-INFRA-04` [DONE] End-to-end MS2 pipeline integration
 14. `MS2-REPORT-01` Milestone 2 technical report
 
 ## Distribution to alice/bob/charly
