@@ -10,7 +10,7 @@ The ADR itself is `MS2-DESIGN-01` (status: design freeze, awaiting team review p
 
 ## Workload Summary
 
-- 21 tickets, 67 story points total; 1 ticket / 2 story points completed (`MS2-INFRA-01`).
+- 21 tickets, 67 story points total; 2 tickets / 4 story points completed (`MS2-INFRA-01`, `MS2-INFRA-02`).
 - Streams: `INFRA` (4), `DATA` (3), `TRAIN` (2), `EVAL` (2), `MODEL-A` (3), `MODEL-B` (3), `INFER` (1), `ABLATE` (1), `COMPARE` (1), `REPORT` (1).
 - Parameter / compute budgets are fixed by ADR §2.14, §3.9, §4.1: ~2.7M params for Model A, ~3.8M for Model B, ~75 min wall-clock per training run, 3 seeds (`{13, 42, 91}`) per model.
 
@@ -61,7 +61,7 @@ Hard blocker.
 
 ---
 
-## MS2-INFRA-02: Core MS2 Schemas and Run Configuration
+## MS2-INFRA-02 [DONE]: Core MS2 Schemas and Run Configuration
 
 ### Description
 
@@ -108,7 +108,7 @@ Hard blocker.
 
 Define and implement the MS2 CLI entrypoints, mirroring the MS1 pattern at `src/cli/ms1.py`. Per the project's execution model (`docs/fs/overall.md` §6), all MS2 functionality must be reachable via `python -m src.cli.ms2 <command>`. CLI files orchestrate modules; they must not contain business logic.
 
-The set of commands has to be sufficient for the entire milestone — preparation, training, inference, evaluation, ablation, comparison, end-to-end — but no command should expose more than 4–5 user-facing flags. A `RunConfig` JSON file (per `MS2-INFRA-02`) is the canonical mechanism for parameter-heavy invocations.
+The set of commands has to be sufficient for the entire milestone — preparation, training, inference, evaluation, ablation, comparison, end-to-end — but no command should expose more than 4–5 user-facing flags. A `RunConfig` JSON file (per `MS2-INFRA-02` [DONE]) is the canonical mechanism for parameter-heavy invocations.
 
 Required commands:
 
@@ -146,7 +146,7 @@ Hard blocker.
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02`.
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02` [DONE].
 - Story points: 2.
 
 ---
@@ -223,7 +223,7 @@ Hard blocker (model code reads `LENGTH_CAPS`).
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02`. Reads MS1 handoff artifact.
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02` [DONE]. Reads MS1 handoff artifact.
 - Story points: 2.
 
 ---
@@ -355,7 +355,7 @@ Hard blocker.
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02`. Independent of model implementations (uses dummy models in tests).
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02` [DONE]. Independent of model implementations (uses dummy models in tests).
 - Story points: 3.
 
 ---
@@ -450,7 +450,7 @@ Hard blocker (gated merge depends on all three branch outputs).
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02`, `MS2-DATA-02`. Reads no actual data — pure layer construction with shape tests.
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02` [DONE], `MS2-DATA-02`. Reads no actual data — pure layer construction with shape tests.
 - Story points: 4.
 
 ---
@@ -884,7 +884,7 @@ Each ablation must:
 - Produce a `RunSummary` per (model, seed) under `experiments/ms2/ablations/<model>/<variant>/<seed>/`.
 - Be invocable via `python -m src.cli.ms2 ablate --variant <name>` (`MS2-INFRA-03`).
 
-The implementation strategy: each variant is a small wrapper around the baseline model that flips the relevant flag in the model-construction code. Use `AblationConfig` from `MS2-INFRA-02` to thread the variant through cleanly — do not duplicate model files.
+The implementation strategy: each variant is a small wrapper around the baseline model that flips the relevant flag in the model-construction code. Use `AblationConfig` from `MS2-INFRA-02` [DONE] to thread the variant through cleanly — do not duplicate model files.
 
 ### Acceptance Criteria
 
@@ -1021,7 +1021,7 @@ Hard blocker (final deliverable).
 Strict dependency-respecting linearization. Items at the same level are parallelizable.
 
 1. `MS2-INFRA-01` [DONE] Repository paths, mixed-precision policy, reproducibility helpers
-2. `MS2-INFRA-02` Core MS2 schemas and run configuration
+2. `MS2-INFRA-02` [DONE] Core MS2 schemas and run configuration
 3. `MS2-INFRA-03` MS2 CLI interface
 4. `MS2-DATA-01` Length distribution analysis and length-cap freeze
 5. `MS2-DATA-02` BPE-4k tokenizer and character vocabulary
