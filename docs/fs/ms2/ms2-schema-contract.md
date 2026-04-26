@@ -8,7 +8,7 @@ Frozen-at-launch training configuration. JSON example: `docs/fs/artifacts/ms2/ms
 
 | Field | Type | ADR source | Meaning |
 | --- | --- | --- | --- |
-| `model_id` | `"A" | "B"` | §1.3, §2, §3 | Model family bound to the run. |
+| `model_id` | `"A" \| "B"` | §1.3, §2, §3 | Model family bound to the run. |
 | `seed` | `int` | §1.9 | Reproducibility seed. |
 | `l_q` | `int` | §1.3 | Question length cap. |
 | `l_c` | `int` | §1.3 | Context length cap. |
@@ -16,7 +16,7 @@ Frozen-at-launch training configuration. JSON example: `docs/fs/artifacts/ms2/ms
 | `l_dec` | `int` | §1.3 | Decoder length cap. |
 | `bucket_boundaries` | `list[int]` | §1.4 | Sequence-length bucket boundaries. |
 | `target_tokens_per_batch` | `int` | §1.4 | Approximate token budget per batch. |
-| `lr_schedule` | `"cosine_with_warmup" | "noam"` | §2.12, §3.7 | Learning-rate schedule choice. |
+| `lr_schedule` | `"cosine_with_warmup" \| "noam"` | §2.12, §3.7 | Learning-rate schedule choice. |
 | `wall_clock_budget_minutes` | `int` | §4.1 | Matched compute budget per training run. |
 | `label_smoothing` | `float` | §1.7 | Cross-entropy label-smoothing value. |
 | `gradient_clip_norm` | `float` | §2.12, §3.7 | Global norm clipping threshold. |
@@ -42,7 +42,7 @@ Result-side metrics and resource summary for comparison-table loading. JSON exam
 | Field | Type | ADR source | Meaning |
 | --- | --- | --- | --- |
 | `run_id` | `str` | §4.3 | Stable run identifier for downstream comparison. |
-| `model_id` | `"A" | "B"` | §4.3 | Model family summarized. |
+| `model_id` | `"A" \| "B"` | §4.3 | Model family summarized. |
 | `seed` | `int` | §1.9 | Run seed. |
 | `dev_em` | `float` | §1.8 | Development exact match. |
 | `dev_token_f1` | `float` | §1.8 | Development token F1. |
