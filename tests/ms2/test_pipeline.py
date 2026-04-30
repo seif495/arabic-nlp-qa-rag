@@ -69,6 +69,17 @@ def test_training_context_jitter_is_bounded_and_centered(tmp_path: Path) -> None
     assert abs(sum(starts) / len(starts) - centered_start) < radius * 0.25
 
 
+def test_context_window_preserves_original_text_slicing(tmp_path: Path) -> None:
+    context = ",".join(f"tok{i}" for i in range(900))
+    record = _record(context, answer="tok500")
+    tokenizer = train_tokenizer_assets([record], repo_root=tmp_path)
+
+    window = select_context_window(record, tokenizer, training=False)
+
+    assert "," in window
+    assert " , " not in window
+
+
 def test_inference_windows_bucket_sizes_and_cache_reuse(tmp_path: Path) -> None:
     context = " ".join(f"tok{i}" for i in range(900))
     record = _record(context)

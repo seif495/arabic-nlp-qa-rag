@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
@@ -18,6 +19,7 @@ TARGET_TOKENS_PER_BATCH = 16_384
 SHUFFLE_BUFFER = 4096
 JITTER_FRACTION = 0.2
 L_CHAR_MAX = 16
+TOKEN_PATTERN = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 
 
 @dataclass(frozen=True)
@@ -90,7 +92,11 @@ def select_context_window(
         radius = int(LENGTH_CAPS["l_c"] * JITTER_FRACTION)
         jitter = generator.randint(-radius, radius)
     window_start = max(0, min(center + jitter - LENGTH_CAPS["l_c"] // 2, len(tokens) - LENGTH_CAPS["l_c"]))
-    return tokenizer.decode(tokens[window_start : window_start + LENGTH_CAPS["l_c"]])
+    return _slice_text_by_token_window(
+        text=record.normalized_context,
+        token_start=window_start,
+        token_end=window_start + LENGTH_CAPS["l_c"],
+    )
 
 
 def inference_sliding_windows(text: str, tokenizer: MS2Tokenizer) -> list[str]:
@@ -170,3 +176,14 @@ def _find_subsequence(values: list[int], needle: list[int]) -> int:
         if values[index : index + len(needle)] == needle:
             return index
     return -1
+
+
+def _slice_text_by_token_window(text: str, token_start: int, token_end: int) -> str:
+    spans = [match.span() for match in TOKEN_PATTERN.finditer(text)]
+    if not spans:
+        return text
+    start_index = max(0, min(token_start, len(spans) - 1))
+    end_index = max(start_index + 1, min(token_end, len(spans)))
+    char_start = spans[start_index][0]
+    char_end = spans[end_index - 1][1]
+    return text[char_start:char_end]
