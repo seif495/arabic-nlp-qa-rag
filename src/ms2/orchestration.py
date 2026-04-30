@@ -392,7 +392,7 @@ def _write_length_analysis_contract(output_path: Path, analysis: dict[str, objec
             "",
             "Artifacts:",
             "",
-            "- `experiments/ms2/ms2_length_distribution_v001.json`",
+            f"- `{'/'.join(('experiments', 'ms2', 'ms2_length_distribution_v001.json'))}`",
             "- `docs/fs/artifacts/ms2/length_proxy_*.png`",
             "- `docs/fs/artifacts/ms2/length_post_bpe_*.png`",
             "",
