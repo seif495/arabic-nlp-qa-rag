@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, fields
 from typing import Any, Literal, get_args
 
+from src.ms2.data.length_caps import LENGTH_CAPS
+
 ModelId = Literal["A", "B"]
 LRSchedule = Literal["cosine_with_warmup", "noam"]
 AblationVariant = Literal[
@@ -49,10 +51,10 @@ class RunConfig:
 
     model_id: ModelId
     seed: int
-    l_q: int = 32
-    l_c: int = 384
-    l_enc: int = 420
-    l_dec: int = 64
+    l_q: int = LENGTH_CAPS["l_q"]
+    l_c: int = LENGTH_CAPS["l_c"]
+    l_enc: int = LENGTH_CAPS["l_enc"]
+    l_dec: int = LENGTH_CAPS["l_dec"]
     bucket_boundaries: tuple[int, ...] = (128, 192, 256, 320, 420)
     target_tokens_per_batch: int = 16_384
     lr_schedule: LRSchedule = "cosine_with_warmup"
