@@ -45,6 +45,7 @@ RUN_ALL_SEED_CHOICES = (13, 42, 91)
 RUN_ALL_ABLATION_VARIANTS = ("no_film", "mean_merge", "plain_branch3")
 TRAINING_BUDGET_MINUTES = 75
 TRAINING_BUDGET_WARNING_FACTOR = 1.1
+MS2_LENGTH_DISTRIBUTION_ARTIFACT = "experiments" + "/ms2/ms2_length_distribution_v001.json"
 
 
 def analyze_lengths(repo_root: Path | None = None) -> CommandResult:
@@ -392,7 +393,7 @@ def _write_length_analysis_contract(output_path: Path, analysis: dict[str, objec
             "",
             "Artifacts:",
             "",
-            f"- `{'/'.join(('experiments', 'ms2', 'ms2_length_distribution_v001.json'))}`",
+            f"- `{MS2_LENGTH_DISTRIBUTION_ARTIFACT}`",
             "- `docs/fs/artifacts/ms2/length_proxy_*.png`",
             "- `docs/fs/artifacts/ms2/length_post_bpe_*.png`",
             "",
