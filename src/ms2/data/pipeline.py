@@ -129,6 +129,7 @@ def write_pipeline_cache(
     if cache_path.exists():
         return cache_path
     selected = [record for record in records if record.split == split]
+    rng = random.Random(13)
     with cache_path.open("w", encoding="utf-8") as handle:
         for record in selected:
             example = build_pipeline_example(
@@ -136,7 +137,7 @@ def write_pipeline_cache(
                 tokenizer,
                 target_model=target_model,
                 training=split == "train",
-                rng=random.Random(13),
+                rng=rng,
             )
             handle.write(json.dumps(example.to_dict(), ensure_ascii=False) + "\n")
     return cache_path

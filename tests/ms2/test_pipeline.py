@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import random
 from pathlib import Path
 
@@ -86,3 +87,28 @@ def test_inference_windows_bucket_sizes_and_cache_reuse(tmp_path: Path) -> None:
     cache_path.write_text("sentinel\n", encoding="utf-8")
     assert write_pipeline_cache([record], tokenizer, repo_root=tmp_path, target_model="a") == cache_path
     assert cache_path.read_text(encoding="utf-8") == "sentinel\n"
+
+
+def test_cache_training_jitter_uses_progressive_rng_state(tmp_path: Path) -> None:
+    context = " ".join(f"tok{i}" for i in range(900))
+    records = [
+        _record(context, answer="tok500", split="train"),
+        MS2DatasetRecord(
+            sample_id="s2",
+            transcript_id="t2",
+            qa_id="q2",
+            normalized_context=context,
+            question_text="tok1 tok2",
+            answer_text="tok500",
+            split="train",
+        ),
+    ]
+    tokenizer = train_tokenizer_assets(records, repo_root=tmp_path)
+
+    cache_path = write_pipeline_cache(records, tokenizer, repo_root=tmp_path, target_model="a")
+    lines = [json.loads(line) for line in cache_path.read_text(encoding="utf-8").splitlines()]
+    first_context_start = lines[0]["encoder_input_ids"].index(SEP_ID) + 1
+    second_context_start = lines[1]["encoder_input_ids"].index(SEP_ID) + 1
+
+    assert first_context_start == second_context_start
+    assert lines[0]["encoder_input_ids"] != lines[1]["encoder_input_ids"]
