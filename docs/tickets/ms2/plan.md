@@ -10,8 +10,8 @@ The ADR itself is `MS2-DESIGN-01` (status: design freeze, awaiting team review p
 
 ## Workload Summary
 
-- 21 tickets, 67 story points total; 3 tickets / 6 story points completed (`MS2-INFRA-01`, `MS2-INFRA-02`, `MS2-INFRA-03`).
-- Streams: `INFRA` (4), `DATA` (3), `TRAIN` (2), `EVAL` (2), `MODEL-A` (3), `MODEL-B` (3), `INFER` (1), `ABLATE` (1), `COMPARE` (1), `REPORT` (1).
+- 19 tickets, 67 story points total; 3 tickets / 6 story points completed (`MS2-INFRA-01`, `MS2-INFRA-02`, `MS2-INFRA-03`).
+- Streams: `INFRA` (4), `DATA` (1), `TRAIN` (2), `EVAL` (2), `MODEL-A` (3), `MODEL-B` (3), `INFER` (1), `ABLATE` (1), `COMPARE` (1), `REPORT` (1).
 - Parameter / compute budgets are fixed by ADR §2.14, §3.9, §4.1: ~2.7M params for Model A, ~3.8M for Model B, ~75 min wall-clock per training run, 3 seeds (`{13, 42, 91}`) per model.
 
 Per-developer assignment will be performed in `alice.md`, `bob.md`, `charly.md` once this plan is reviewed and frozen. The recommended execution order is in the final section of this document.
@@ -112,7 +112,7 @@ The set of commands has to be sufficient for the entire milestone — preparatio
 
 Required commands:
 
-- `prep-data`: tokenizer training + char vocab + TFRecord cache build (orchestrates `MS2-DATA-02`, `MS2-DATA-03`).
+- `prep-data`: length-cap freeze + tokenizer training + char vocab + TFRecord cache build (orchestrates `MS2-DATA-01`).
 - `analyze-lengths`: length distribution analysis from MS1 output (`MS2-DATA-01`).
 - `train`: trains one model on one seed; takes `--model {a,b}` and `--seed {13,42,91}` and `--config <path>`.
 - `infer`: runs greedy and/or beam decoding on the dev/test split for a trained run (`MS2-INFER-01`).
@@ -190,47 +190,23 @@ Soft blocker (downstream tickets can run individual sub-commands; `run-all` is f
 
 ---
 
-## MS2-DATA-01: Length Distribution Analysis and Length-Cap Freeze
+## MS2-DATA-01: Data Stack — Length-Cap Freeze, BPE-4k Tokenizer, Character Vocabulary, and tf.data Input Pipeline
 
 ### Description
+
+End-to-end ownership of every text-to-tensor concern in MS2. This is a deliberately large single-owner ticket: the three pieces (length analysis, tokenizer, pipeline) are tightly coupled — the length caps depend on tokenizer choice, and the pipeline cannot run without both — so a single owner avoids stitching mismatches at boundaries and keeps the data contract internally consistent for every downstream model/training/eval ticket.
+
+The work decomposes into three sequenced sub-deliverables. They share artifacts and tests, but their contracts are distinct and called out separately so an evaluator can probe each.
+
+#### Sub-deliverable A — Length Distribution Analysis & Length-Cap Freeze (ADR §1.3)
 
 ADR §1.3 explicitly defers the final length caps (`L_q`, `L_c`, `L_enc`, `L_dec`) to this ticket — the placeholder values (32 / 384 / 420 / 64) are to be confirmed against the actual percentiles of the cleaned MS1 corpus. The MS1→MS2 handoff (`docs/fs/artifacts/ms1/ms1-ms2-handoff-note.md`) gives us the canonical export at `data/processed/ms1/ms1_dataset_processed_v001.jsonl`; this ticket consumes that.
 
 For each of the four length axes, compute the empirical CDF and propose a cap at the **95th percentile**, **99th percentile**, and **maximum**. Choose a cap that covers ≥ 99 % of examples without truncation while keeping `L_enc ≤ 420` to respect the bucket-boundary contract in ADR §1.4. If 99 % coverage requires a larger cap, document the trade-off and update the ADR placeholder via a small ADR-amendment note (do _not_ silently bump the bucket boundaries — that has knock-on memory effects).
 
-The deliverable is not just numbers but a frozen, importable `LENGTH_CAPS` constant so every downstream ticket reads the same values. This is the equivalent of MS1's `MS1-ANALYSIS-01` corpus-distribution ticket but scoped tightly to the length-cap decision.
+The deliverable is not just numbers but a frozen, importable `LENGTH_CAPS` constant so every downstream ticket reads the same values. Run the length analysis **twice**: once with whitespace+punctuation segmentation as a pre-tokenizer proxy (to size the tokenizer corpus), and once again post-tokenizer with BPE-tokenized lengths (to confirm or revise caps). Final caps must be the post-tokenizer numbers.
 
-### Acceptance Criteria
-
-- Empirical distribution computed for: question token length, context token length (BPE-tokenized — note tokenizer doesn't exist yet, so this ticket can use whitespace + punctuation segmentation as a proxy with a clear caveat in the report; final caps are re-validated post-`MS2-DATA-02` with a 1-line correction if they shift), encoder-input length (`L_q + L_c + 4` per ADR §1.3), decoder length.
-- Histograms saved per axis.
-- 95th / 99th / max percentiles reported in a table.
-- Final caps committed as a Python constant (`LENGTH_CAPS` in `src/ms2/data/length_caps.py`) and linked from `RunConfig`.
-- If any cap differs from the ADR placeholder by ≥ 10 %, a short ADR-amendment note is added.
-- ≥ 99 % example coverage at the chosen `L_enc` cap is verified.
-
-### Produces Artifacts
-
-- `experiments/ms2/length_distribution_v001.json`
-- 4 histogram PNGs (`docs/fs/artifacts/ms2/length_*.png`)
-- `src/ms2/data/length_caps.py`
-- Short observation note (markdown)
-- Optional ADR amendment
-
-### Blocking Class
-
-Hard blocker (model code reads `LENGTH_CAPS`).
-
-### Notes
-
-- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02` [DONE]. Reads MS1 handoff artifact.
-- Story points: 2.
-
----
-
-## MS2-DATA-02: BPE-4k Tokenizer and Character Vocabulary
-
-### Description
+#### Sub-deliverable B — BPE-4k Tokenizer & Character Vocabulary (ADR §1.1, §2.6)
 
 Train and freeze the two text-discretization assets every model uses. ADR §1.1 specifies BPE via SentencePiece, `V = 4096`, character coverage 1.0, special token IDs 0–4 (`<pad>`, `<unk>`, `<bos>`, `<eos>`, `<sep>`), trained on transcript text **only** (the ADR is explicit that QA pairs must not leak into the tokenizer corpus). The output artifact path is fixed: `data/processed/ms2/ms2_tokenizer_bpe_4k_v001.model`.
 
@@ -238,44 +214,11 @@ ADR §2.6 separately requires a character vocabulary for Branch 3 of Model A: ro
 
 Tokenizer training must be deterministic per ADR §1.9 — single-threaded, fixed seed.
 
-This ticket also writes a thin wrapper module `src/ms2/data/tokenizer.py` that exposes `encode(text: str) -> list[int]`, `decode(ids: list[int]) -> str`, and `encode_chars(token_str: str, max_chars: int = 16) -> list[int]`. The character encoding right-truncates to `L_char_max = 16` per ADR §2.6 and pads with the character `<pad>`.
+This sub-deliverable also writes a thin wrapper module `src/ms2/data/tokenizer.py` that exposes `encode(text: str) -> list[int]`, `decode(ids: list[int]) -> str`, and `encode_chars(token_str: str, max_chars: int = 16) -> list[int]`. The character encoding right-truncates to `L_char_max = 16` per ADR §2.6 and pads with the character `<pad>`.
 
-### Acceptance Criteria
+#### Sub-deliverable C — tf.data Input Pipeline (ADR §1.2, §1.3, §1.4, §2.6)
 
-- BPE tokenizer trained with vocab size exactly 4096; special IDs 0–4 verified by direct lookup.
-- Tokenizer training is deterministic — two consecutive trainings with identical inputs yield identical vocabularies (byte-equal `.model` files, or at minimum identical id-to-piece mappings).
-- Character vocabulary covers the union of characters appearing in the cleaned corpus; verified by exhaustive scan.
-- `encode` round-trips: a sample of 100 cleaned strings, `decode(encode(s))`, normalizes to the same string after Arabic post-normalization (ADR §1.8) — full lossless round-trip is not guaranteed by BPE, but post-norm equality is the right contract.
-- Character coverage of 1.0 verified — no `<unk>` triggered on the training corpus characters.
-- Tokenizer wrapper exposes the three documented functions and is type-checked via tests.
-- Tokenizer trained on transcript text only (QA pairs excluded) — verified by a test reading the training input list.
-
-### Produces Artifacts
-
-- `data/processed/ms2/ms2_tokenizer_bpe_4k_v001.model`
-- `data/processed/ms2/ms2_char_vocab_v001.json`
-- `src/ms2/data/tokenizer.py`
-- `tests/ms2/test_tokenizer.py`
-- A small "tokenizer card" doc capturing vocab size, special tokens, training corpus, training command (mirrors the spirit of `docs/fs/ms1-schema-contract.md`).
-
-### Blocking Class
-
-Hard blocker.
-
-### Notes
-
-- Dependencies: `MS2-INFRA-01` [DONE], `MS2-DATA-01`. Reads `data/processed/ms1/ms1_dataset_processed_v001.jsonl`.
-- Story points: 3.
-
----
-
-## MS2-DATA-03: tf.data Input Pipeline (Sequence Formatting, Context Windowing, Bucketing, Char Matrix, TFRecord Cache)
-
-### Description
-
-Build the training-time data pipeline. This is a large, single-owner ticket because the pieces are tightly coupled and breaking them apart would force every consumer to re-stitch.
-
-The pipeline must implement, per ADR:
+Build the training-time data pipeline. The pipeline must implement, per ADR:
 
 1. **Sequence formatting** (§1.2): encoder input = `[<bos>] question_tokens [<sep>] context_tokens [<eos>]`; decoder input = `[<bos>] answer_tokens`; decoder target = `answer_tokens [<eos>]`. Loss mask is true where the target is not `<pad>`.
 2. **Context windowing** (§1.3): training-time uses a `L_c`-length window centered on the gold answer span with random jitter `±20%` of `L_c`. Inference-time uses sliding windows with stride `L_c / 2` over the full transcript when the transcript exceeds `L_c`.
@@ -286,6 +229,27 @@ The pipeline must implement, per ADR:
 The same pipeline serves training, dev, and test, but only training uses the random jitter — dev/test use a deterministic centered window.
 
 ### Acceptance Criteria
+
+**Sub-deliverable A (length caps):**
+
+- Empirical distribution computed for: question token length, context token length, encoder-input length (`L_q + L_c + 4` per ADR §1.3), decoder length — both with the whitespace-proxy pass and the post-BPE pass.
+- Histograms saved per axis (proxy pass and final BPE pass).
+- 95th / 99th / max percentiles reported in a table.
+- Final caps committed as a Python constant (`LENGTH_CAPS` in `src/ms2/data/length_caps.py`) and linked from `RunConfig`.
+- If any cap differs from the ADR placeholder by ≥ 10 %, a short ADR-amendment note is added.
+- ≥ 99 % example coverage at the chosen `L_enc` cap is verified post-BPE.
+
+**Sub-deliverable B (tokenizer + char vocab):**
+
+- BPE tokenizer trained with vocab size exactly 4096; special IDs 0–4 verified by direct lookup.
+- Tokenizer training is deterministic — two consecutive trainings with identical inputs yield identical vocabularies (byte-equal `.model` files, or at minimum identical id-to-piece mappings).
+- Character vocabulary covers the union of characters appearing in the cleaned corpus; verified by exhaustive scan.
+- `encode` round-trips: a sample of 100 cleaned strings, `decode(encode(s))`, normalizes to the same string after Arabic post-normalization (ADR §1.8) — full lossless round-trip is not guaranteed by BPE, but post-norm equality is the right contract.
+- Character coverage of 1.0 verified — no `<unk>` triggered on the training corpus characters.
+- Tokenizer wrapper exposes the three documented functions and is type-checked via tests.
+- Tokenizer trained on transcript text only (QA pairs excluded) — verified by a test reading the training input list.
+
+**Sub-deliverable C (tf.data pipeline):**
 
 - Encoder/decoder/target tensors match the formatting in ADR §1.2 byte-for-byte (verified by a test that hand-constructs an example).
 - Random jitter on training context windows verified statistically (mean offset ≈ 0, std within `0.2 · L_c`).
@@ -298,19 +262,27 @@ The same pipeline serves training, dev, and test, but only training uses the ran
 
 ### Produces Artifacts
 
+- `experiments/ms2/length_distribution_v001.json` (proxy + post-BPE)
+- 4 × 2 histogram PNGs (`docs/fs/artifacts/ms2/length_*.png`)
+- `src/ms2/data/length_caps.py`
+- Optional ADR amendment note
+- `data/processed/ms2/ms2_tokenizer_bpe_4k_v001.model`
+- `data/processed/ms2/ms2_char_vocab_v001.json`
+- `src/ms2/data/tokenizer.py`
+- "Tokenizer card" doc (vocab size, special tokens, training corpus, training command — mirrors `docs/fs/ms1-schema-contract.md`)
 - `src/ms2/data/pipeline.py`
 - `data/processed/ms2/ms2_tfrecords_train_v001/` (and `_dev_`, `_test_` siblings, per Model A and Model B variants)
-- `tests/ms2/test_pipeline.py`
-- A small "pipeline contract" doc documenting input/output schemas
+- "Pipeline contract" doc documenting input/output schemas
+- `tests/ms2/test_length_caps.py`, `tests/ms2/test_tokenizer.py`, `tests/ms2/test_pipeline.py`
 
 ### Blocking Class
 
-Hard blocker.
+Hard blocker (every model, training, and evaluation ticket downstream consumes outputs from this ticket).
 
 ### Notes
 
-- Dependencies: `MS2-DATA-01`, `MS2-DATA-02`.
-- Story points: 4.
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02` [DONE]. Reads `data/processed/ms1/ms1_dataset_processed_v001.jsonl` from the MS1 handoff.
+- Story points: 9 (= 2 + 3 + 4 from the prior decomposition into A/B/C). The work is sequential within the ticket: A → B → C.
 
 ---
 
@@ -450,7 +422,7 @@ Hard blocker (gated merge depends on all three branch outputs).
 
 ### Notes
 
-- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02` [DONE], `MS2-DATA-02`. Reads no actual data — pure layer construction with shape tests.
+- Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02` [DONE], `MS2-DATA-01` (specifically the tokenizer + char vocab sub-deliverable). Reads no actual data — pure layer construction with shape tests.
 - Story points: 4.
 
 ---
@@ -801,7 +773,7 @@ Hard blocker (`MS2-EVAL-02`, `MS2-COMPARE-01`, and `MS2-REPORT-01` consume these
 
 ### Notes
 
-- Dependencies: `MS2-DATA-03`, `MS2-MODEL-A-03`, `MS2-MODEL-B-03`, `MS2-TRAIN-01`, `MS2-EVAL-01`. Compute-bound, not code-bound; story points reflect orchestration cost, not implementation.
+- Dependencies: `MS2-DATA-01`, `MS2-MODEL-A-03`, `MS2-MODEL-B-03`, `MS2-TRAIN-01`, `MS2-EVAL-01`. Compute-bound, not code-bound; story points reflect orchestration cost, not implementation.
 - Story points: 3.
 
 ---
@@ -1023,23 +995,21 @@ Strict dependency-respecting linearization. Items at the same level are parallel
 1. `MS2-INFRA-01` [DONE] Repository paths, mixed-precision policy, reproducibility helpers
 2. `MS2-INFRA-02` [DONE] Core MS2 schemas and run configuration
 3. `MS2-INFRA-03` [DONE] MS2 CLI interface
-4. `MS2-DATA-01` Length distribution analysis and length-cap freeze
-5. `MS2-DATA-02` BPE-4k tokenizer and character vocabulary
-6. `MS2-DATA-03` tf.data input pipeline
-7. **Parallel batch (a)**:
+4. `MS2-DATA-01` Data stack — length-cap freeze, tokenizer, char vocab, tf.data pipeline (sub-deliverables A → B → C, sequential within the ticket)
+5. **Parallel batch (a)**:
    - `MS2-TRAIN-01` Training utilities
    - `MS2-EVAL-01` Metrics implementation and Arabic post-normalization
-8. **Parallel batch (b)** — Model A and Model B implementations can run in parallel:
+6. **Parallel batch (b)** — Model A and Model B implementations can run in parallel:
    - Model A: `MS2-MODEL-A-01` → `MS2-MODEL-A-02` → `MS2-MODEL-A-03`
    - Model B: `MS2-MODEL-B-01` → `MS2-MODEL-B-02` → `MS2-MODEL-B-03`
-9. `MS2-INFER-01` Greedy and beam-4 decoding
-10. `MS2-TRAIN-02` Execute training runs (6 baseline runs)
-11. **Parallel batch (c)**:
-    - `MS2-EVAL-02` Eval protocol (noise battery, leave-2-videos-out, long-dep, difficulty, conditioning viz)
-    - `MS2-ABLATE-01` Ablations
-12. `MS2-COMPARE-01` Headline comparison table and diagnostic plots
-13. `MS2-INFRA-04` [DONE] End-to-end MS2 pipeline integration
-14. `MS2-REPORT-01` Milestone 2 technical report
+7. `MS2-INFER-01` Greedy and beam-4 decoding
+8. `MS2-TRAIN-02` Execute training runs (6 baseline runs)
+9. **Parallel batch (c)**:
+   - `MS2-EVAL-02` Eval protocol (noise battery, leave-2-videos-out, long-dep, difficulty, conditioning viz)
+   - `MS2-ABLATE-01` Ablations
+10. `MS2-COMPARE-01` Headline comparison table and diagnostic plots
+11. `MS2-INFRA-04` [DONE] End-to-end MS2 pipeline integration
+12. `MS2-REPORT-01` Milestone 2 technical report
 
 ## Distribution to alice/bob/charly
 
