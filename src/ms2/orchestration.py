@@ -8,6 +8,10 @@ from pathlib import Path
 from time import perf_counter
 
 from src.common.paths import MS2Paths, make_ms2_output_filename, resolve_ms2_paths
+from src.ms2.data.length_caps import run_length_analysis
+from src.ms2.data.pipeline import write_pipeline_cache
+from src.ms2.data.records import load_ms1_processed_records
+from src.ms2.data.tokenizer import train_tokenizer_assets
 
 
 @dataclass(frozen=True)
@@ -46,7 +50,8 @@ TRAINING_BUDGET_WARNING_FACTOR = 1.1
 def analyze_lengths(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
     output_path = paths.report_dir / "ms2-length-analysis-contract.md"
-    _materialize_output_path(output_path)
+    analysis = run_length_analysis(repo_root=paths.repo_root)
+    _write_length_analysis_contract(output_path, analysis)
     return CommandResult(
         command="analyze-lengths",
         status="ok",
@@ -56,6 +61,18 @@ def analyze_lengths(repo_root: Path | None = None) -> CommandResult:
 
 def prep_data(repo_root: Path | None = None, target_model: str = "a") -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
+    records = load_ms1_processed_records(
+        paths.repo_root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl"
+    )
+    tokenizer = train_tokenizer_assets(records=records, repo_root=paths.repo_root)
+    for split in ("train", "dev", "test"):
+        write_pipeline_cache(
+            records=records,
+            tokenizer=tokenizer,
+            repo_root=paths.repo_root,
+            target_model=target_model,
+            split=split,
+        )
     output_path = paths.tfrecord_shard_dir / f"target_model_{target_model}"
     _materialize_output_path(output_path)
     return CommandResult(
@@ -347,6 +364,41 @@ def _materialize_output_path(path: Path) -> None:
         return
 
     path.mkdir(parents=True, exist_ok=True)
+
+
+def _write_length_analysis_contract(output_path: Path, analysis: dict[str, object]) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    post_bpe = analysis["post_bpe"]
+    if not isinstance(post_bpe, dict):
+        raise TypeError("post_bpe analysis must be a dictionary")
+    rows = [
+        "# MS2 Length Analysis Contract",
+        "",
+        "The frozen MS2 length caps are produced by `MS2-DATA-01` and consumed by `RunConfig`.",
+        "",
+        "| Axis | p95 | p99 | max | chosen cap | coverage |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for axis, stats in post_bpe.items():
+        if not isinstance(stats, dict):
+            continue
+        rows.append(
+            "| "
+            f"{axis} | {stats['p95']} | {stats['p99']} | {stats['maximum']} | "
+            f"{stats['cap']} | {float(stats['coverage']):.3f} |"
+        )
+    rows.extend(
+        [
+            "",
+            "Artifacts:",
+            "",
+            "- `experiments/ms2/ms2_length_distribution_v001.json`",
+            "- `docs/fs/artifacts/ms2/length_proxy_*.png`",
+            "- `docs/fs/artifacts/ms2/length_post_bpe_*.png`",
+            "",
+        ]
+    )
+    output_path.write_text("\n".join(rows), encoding="utf-8")
 
 
 def _expected_analyze_lengths_output(repo_root: Path) -> Path:
