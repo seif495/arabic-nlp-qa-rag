@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from src.ms2.data.length_caps import (
     LENGTH_CAPS,
     analyze_length_distributions,
@@ -63,9 +65,14 @@ def test_run_length_analysis_writes_json_and_histograms(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = run_length_analysis(repo_root=tmp_path)
+    result = run_length_analysis(repo_root=tmp_path, tokenizer=lambda text: text.split())
 
     assert result["encoder_coverage_verified"] is True
     assert (tmp_path / "experiments" / "ms2" / "ms2_length_distribution_v001.json").is_file()
     histograms = list((tmp_path / "docs" / "fs" / "artifacts" / "ms2").glob("length_*.png"))
     assert len(histograms) == 8
+
+
+def test_run_length_analysis_requires_post_tokenizer_callable(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="requires a tokenizer callable"):
+        run_length_analysis(repo_root=tmp_path)

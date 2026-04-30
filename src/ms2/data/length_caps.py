@@ -69,6 +69,10 @@ def run_length_analysis(
     paths = resolve_ms2_paths(repo_root=root, create_dirs=True)
     records = load_ms1_processed_records(dataset_path or root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl")
     proxy_stats = analyze_length_distributions(records)
+    if tokenizer is None:
+        raise ValueError(
+            "run_length_analysis requires a tokenizer callable for the post_bpe pass"
+        )
     final_stats = analyze_length_distributions(records, tokenizer=tokenizer)
     result = {
         "record_count": len(records),
