@@ -11,7 +11,7 @@ from src.common.paths import MS2Paths, make_ms2_output_filename, resolve_ms2_pat
 from src.ms2.data.length_caps import run_length_analysis
 from src.ms2.data.pipeline import write_pipeline_cache
 from src.ms2.data.records import load_ms1_processed_records
-from src.ms2.data.tokenizer import train_tokenizer_assets
+from src.ms2.data.tokenizer import ensure_default_tokenizer, train_tokenizer_assets
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,11 @@ MS2_LENGTH_DISTRIBUTION_ARTIFACT = "experiments" + "/ms2/ms2_length_distribution
 def analyze_lengths(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
     output_path = paths.report_dir / "ms2-length-analysis-contract.md"
-    analysis = run_length_analysis(repo_root=paths.repo_root)
+    tokenizer = ensure_default_tokenizer(repo_root=paths.repo_root)
+    analysis = run_length_analysis(
+        repo_root=paths.repo_root,
+        tokenizer=lambda text: tokenizer.encode(text),
+    )
     _write_length_analysis_contract(output_path, analysis)
     return CommandResult(
         command="analyze-lengths",
