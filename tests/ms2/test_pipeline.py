@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+import random
+from pathlib import Path
+
+from src.ms2.data.length_caps import LENGTH_CAPS
+from src.ms2.data.pipeline import (
+    BUCKET_BOUNDARIES,
+    TARGET_TOKENS_PER_BATCH,
+    bucket_batch_sizes,
+    build_pipeline_example,
+    inference_sliding_windows,
+    select_context_window,
+    write_pipeline_cache,
+)
+from src.ms2.data.records import MS2DatasetRecord
+from src.ms2.data.tokenizer import BOS_ID, EOS_ID, PAD_ID, SEP_ID, train_tokenizer_assets
+
+
+def _record(context: str, answer: str = "tok5", split: str = "train") -> MS2DatasetRecord:
+    return MS2DatasetRecord(
+        sample_id="s1",
+        transcript_id="t1",
+        qa_id="q1",
+        normalized_context=context,
+        question_text="tok1 tok2",
+        answer_text=answer,
+        split=split,
+    )
+
+
+def test_pipeline_formats_sequences_and_model_schemas(tmp_path: Path) -> None:
+    record = _record("tok1 tok2 tok3 tok4 tok5", answer="tok5")
+    tokenizer = train_tokenizer_assets([record], repo_root=tmp_path)
+
+    model_a = build_pipeline_example(record, tokenizer, target_model="a")
+    model_b = build_pipeline_example(record, tokenizer, target_model="b")
+
+    assert model_a.encoder_input_ids[0] == BOS_ID
+    assert SEP_ID in model_a.encoder_input_ids
+    assert model_a.decoder_input_ids[0] == BOS_ID
+    assert EOS_ID in model_a.decoder_target_ids
+    assert len(model_a.encoder_input_ids) == LENGTH_CAPS["l_enc"]
+    assert len(model_a.decoder_input_ids) == LENGTH_CAPS["l_dec"]
+    assert len(model_a.decoder_target_ids) == LENGTH_CAPS["l_dec"]
+    assert model_a.loss_mask == [token_id != PAD_ID for token_id in model_a.decoder_target_ids]
+    assert model_a.char_matrix is not None
+    assert len(model_a.char_matrix) == LENGTH_CAPS["l_enc"]
+    assert len(model_a.char_matrix[0]) == 16
+    assert model_b.char_matrix is None
+
+
+def test_training_context_jitter_is_bounded_and_centered(tmp_path: Path) -> None:
+    context = " ".join(f"tok{i}" for i in range(900))
+    record = _record(context, answer="tok500")
+    tokenizer = train_tokenizer_assets([record], repo_root=tmp_path)
+    starts = []
+
+    for seed in range(200):
+        window = select_context_window(record, tokenizer, training=True, rng=random.Random(seed))
+        first_piece = window.split()[0]
+        starts.append(int(first_piece.removeprefix("tok")))
+
+    centered_start = 500 - LENGTH_CAPS["l_c"] // 2
+    radius = int(LENGTH_CAPS["l_c"] * 0.2)
+    assert min(starts) >= centered_start - radius
+    assert max(starts) <= centered_start + radius
+    assert abs(sum(starts) / len(starts) - centered_start) < radius * 0.25
+
+
+def test_inference_windows_bucket_sizes_and_cache_reuse(tmp_path: Path) -> None:
+    context = " ".join(f"tok{i}" for i in range(900))
+    record = _record(context)
+    tokenizer = train_tokenizer_assets([record], repo_root=tmp_path)
+
+    windows = inference_sliding_windows(context, tokenizer)
+    assert len(windows) > 1
+    assert windows[1].split()[0] == f"tok{LENGTH_CAPS['l_c'] // 2}"
+
+    batch_sizes = bucket_batch_sizes()
+    assert tuple(batch_sizes) == BUCKET_BOUNDARIES
+    for boundary, batch_size in batch_sizes.items():
+        assert abs((boundary * batch_size) - TARGET_TOKENS_PER_BATCH) <= boundary
+
+    cache_path = write_pipeline_cache([record], tokenizer, repo_root=tmp_path, target_model="a")
+    cache_path.write_text("sentinel\n", encoding="utf-8")
+    assert write_pipeline_cache([record], tokenizer, repo_root=tmp_path, target_model="a") == cache_path
+    assert cache_path.read_text(encoding="utf-8") == "sentinel\n"
