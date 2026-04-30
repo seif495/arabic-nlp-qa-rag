@@ -283,6 +283,7 @@ Hard blocker (every model, training, and evaluation ticket downstream consumes o
 
 - Dependencies: `MS2-INFRA-01` [DONE], `MS2-INFRA-02` [DONE]. Reads `data/processed/ms1/ms1_dataset_processed_v001.jsonl` from the MS1 handoff.
 - Story points: 9 (= 2 + 3 + 4 from the prior decomposition into A/B/C). The work is sequential within the ticket: A → B → C.
+- Completion verification: data-stack pytest coverage and the MS2 no-hardcoded-path guard pass for the completed implementation.
 
 ---
 
