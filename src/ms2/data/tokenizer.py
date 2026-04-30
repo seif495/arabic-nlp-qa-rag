@@ -58,7 +58,7 @@ class MS2Tokenizer:
         return encoded + [self.char_to_id[CHAR_PAD]] * (max_chars - len(encoded))
 
 
-_DEFAULT_TOKENIZER: MS2Tokenizer | None = None
+_DEFAULT_TOKENIZERS: dict[str, MS2Tokenizer] = {}
 
 
 def train_tokenizer_assets(
@@ -91,16 +91,18 @@ def load_tokenizer(repo_root: Path | None = None) -> MS2Tokenizer:
 
 
 def ensure_default_tokenizer(repo_root: Path | None = None) -> MS2Tokenizer:
-    global _DEFAULT_TOKENIZER
-    if _DEFAULT_TOKENIZER is not None:
-        return _DEFAULT_TOKENIZER
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
+    cache_key = str(paths.repo_root)
+    if cache_key in _DEFAULT_TOKENIZERS:
+        return _DEFAULT_TOKENIZERS[cache_key]
     if paths.tokenizer_path.exists() and paths.char_vocab_path.exists():
-        _DEFAULT_TOKENIZER = load_tokenizer(repo_root=repo_root)
-        return _DEFAULT_TOKENIZER
+        _DEFAULT_TOKENIZERS[cache_key] = load_tokenizer(repo_root=repo_root)
+        return _DEFAULT_TOKENIZERS[cache_key]
     records = load_ms1_processed_records(paths.repo_root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl")
-    _DEFAULT_TOKENIZER = train_tokenizer_assets(records, repo_root=paths.repo_root)
-    return _DEFAULT_TOKENIZER
+    _DEFAULT_TOKENIZERS[cache_key] = train_tokenizer_assets(
+        records, repo_root=paths.repo_root
+    )
+    return _DEFAULT_TOKENIZERS[cache_key]
 
 
 def encode(text: str) -> list[int]:

@@ -7,6 +7,7 @@ from src.common.paths import resolve_ms2_paths
 from src.ms2.data.records import MS2DatasetRecord
 from src.ms2.data.tokenizer import (
     VOCAB_SIZE,
+    ensure_default_tokenizer,
     train_tokenizer_assets,
     verify_char_coverage,
     verify_special_token_ids,
@@ -60,3 +61,42 @@ def test_tokenizer_round_trip_and_char_coverage(tmp_path: Path) -> None:
         tokenizer.char_to_id[ch] for ch in "اهلا"
     ]
     assert tokenizer.encode_chars("ا", max_chars=3)[1:] == [0, 0]
+
+
+def test_default_tokenizer_cache_is_scoped_by_repo_root(tmp_path: Path) -> None:
+    root_a = tmp_path / "root_a"
+    root_b = tmp_path / "root_b"
+    root_a.mkdir(parents=True)
+    root_b.mkdir(parents=True)
+    records_a = [
+        MS2DatasetRecord(
+            sample_id="sa",
+            transcript_id="ta",
+            qa_id="qa",
+            normalized_context="alpha_only",
+            question_text="q",
+            answer_text="a",
+            split="train",
+        )
+    ]
+    records_b = [
+        MS2DatasetRecord(
+            sample_id="sb",
+            transcript_id="tb",
+            qa_id="qb",
+            normalized_context="beta_only",
+            question_text="q",
+            answer_text="a",
+            split="train",
+        )
+    ]
+    train_tokenizer_assets(records_a, repo_root=root_a)
+    train_tokenizer_assets(records_b, repo_root=root_b)
+
+    tokenizer_a = ensure_default_tokenizer(repo_root=root_a)
+    tokenizer_b = ensure_default_tokenizer(repo_root=root_b)
+
+    assert tokenizer_a.piece_to_id.get("alpha_only") is not None
+    assert tokenizer_b.piece_to_id.get("beta_only") is not None
+    assert tokenizer_a.piece_to_id.get("beta_only") is None
+    assert tokenizer_b.piece_to_id.get("alpha_only") is None
