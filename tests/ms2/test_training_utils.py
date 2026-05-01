@@ -34,10 +34,12 @@ def test_build_adamw_applies_loss_scale_and_decay_filter(
     tracked = [types.SimpleNamespace(name="encoder/kernel:0"), types.SimpleNamespace(name="decoder/bias:0")]
     bundle = build_adamw(learning_rate=3e-4, tracked_variables=tracked)
 
-    assert isinstance(bundle["optimizer"], FakeLossScaleOptimizer)
-    assert bundle["optimizer"].inner.kwargs["weight_decay"] == 0.01
-    assert bundle["decay_variables"] == ("encoder/kernel:0",)
-    assert bundle["teacher_forcing_ratio"] == 1.0
+    assert isinstance(bundle.optimizer, FakeLossScaleOptimizer)
+    assert bundle.optimizer.inner.kwargs["weight_decay"] == 0.01
+    assert bundle.optimizer.inner.kwargs["global_clipnorm"] == 1.0
+    assert bundle.decay_variables == ("encoder/kernel:0",)
+    assert bundle.teacher_forcing_ratio == 1.0
+    assert bundle.gradient_clip_norm == 1.0
 
 
 def test_schedules_subclass_learning_rate_schedule(monkeypatch: pytest.MonkeyPatch) -> None:
