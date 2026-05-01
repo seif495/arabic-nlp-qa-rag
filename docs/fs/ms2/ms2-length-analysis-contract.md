@@ -1,22 +1,16 @@
 # MS2 Length Analysis Contract
 
-`MS2-DATA-01` owns the frozen length caps consumed by `src.ms2.schemas.RunConfig`.
+The frozen MS2 length caps are produced by `MS2-DATA-01` and consumed by `RunConfig`.
 
-The executable entrypoint is:
+| Axis | p95 | p99 | max | chosen cap | coverage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| question | 16 | 17 | 17 | 17 | 1.000 |
+| context | 16048 | 16048 | 16048 | 16048 | 1.000 |
+| encoder | 16062 | 16066 | 16066 | 420 | 0.000 |
+| decoder | 16 | 18 | 23 | 18 | 0.995 |
 
-```bash
-uv run python -m src.cli.ms2 analyze-lengths
-```
+Artifacts:
 
-The command reads `data/processed/ms1/ms1_dataset_processed_v001.jsonl`, computes both whitespace-proxy and post-tokenizer distributions, writes `experiments/ms2/ms2_length_distribution_v001.json`, and refreshes this contract table with p95, p99, max, chosen cap, and coverage.
-
-The frozen defaults are:
-
-| Field | Value |
-| --- | ---: |
-| `L_q` | 32 |
-| `L_c` | 384 |
-| `L_enc` | 420 |
-| `L_dec` | 64 |
-
-Histogram snapshots are emitted under `docs/fs/artifacts/ms2/length_<pass>_<axis>.png` for the proxy and post-tokenizer passes.
+- `experiments/ms2/ms2_length_distribution_v001.json`
+- `docs/fs/artifacts/ms2/length_proxy_*.png`
+- `docs/fs/artifacts/ms2/length_post_bpe_*.png`
