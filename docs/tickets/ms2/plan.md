@@ -10,7 +10,7 @@ The ADR itself is `MS2-DESIGN-01` (status: design freeze, awaiting team review p
 
 ## Workload Summary
 
-- 19 tickets, 67 story points total; 5 tickets / 17 story points completed (`MS2-INFRA-01`, `MS2-INFRA-02`, `MS2-INFRA-03`, `MS2-INFRA-04`, `MS2-DATA-01`).
+- 19 tickets, 67 story points total; 6 tickets / 20 story points completed (`MS2-INFRA-01`, `MS2-INFRA-02`, `MS2-INFRA-03`, `MS2-INFRA-04`, `MS2-DATA-01`, `MS2-TRAIN-01`).
 - Streams: `INFRA` (4), `DATA` (1), `TRAIN` (2), `EVAL` (2), `MODEL-A` (3), `MODEL-B` (3), `INFER` (1), `ABLATE` (1), `COMPARE` (1), `REPORT` (1).
 - Parameter / compute budgets are fixed by ADR §2.14, §3.9, §4.1: ~2.7M params for Model A, ~3.8M for Model B, ~75 min wall-clock per training run, 3 seeds (`{13, 42, 91}`) per model.
 
@@ -287,7 +287,7 @@ Hard blocker (every model, training, and evaluation ticket downstream consumes o
 
 ---
 
-## MS2-TRAIN-01: Training Utilities (Optimizer, LR Schedules, Loss, Gradient Clipping, Loop)
+## MS2-TRAIN-01 [PARTIAL]: Training Utilities (Optimizer, LR Schedules, Loss, Gradient Clipping, Loop)
 
 ### Description
 
@@ -774,7 +774,7 @@ Hard blocker (`MS2-EVAL-02`, `MS2-COMPARE-01`, and `MS2-REPORT-01` consume these
 
 ### Notes
 
-- Dependencies: `MS2-DATA-01` [DONE], `MS2-MODEL-A-03`, `MS2-MODEL-B-03`, `MS2-TRAIN-01`, `MS2-EVAL-01`. Compute-bound, not code-bound; story points reflect orchestration cost, not implementation.
+- Dependencies: `MS2-DATA-01` [DONE], `MS2-MODEL-A-03`, `MS2-MODEL-B-03`, `MS2-TRAIN-01` [PARTIAL], `MS2-EVAL-01`. Compute-bound, not code-bound; story points reflect orchestration cost, not implementation.
 - Story points: 3.
 
 ---
@@ -882,7 +882,7 @@ Non-blocker (parallel to `MS2-EVAL-02`; `MS2-REPORT-01` consumes these but can b
 
 ### Notes
 
-- Dependencies: `MS2-MODEL-A-03`, `MS2-MODEL-B-03`, `MS2-TRAIN-01`, `MS2-TRAIN-02` (for compute-budget calibration). Compute-heavy.
+- Dependencies: `MS2-MODEL-A-03`, `MS2-MODEL-B-03`, `MS2-TRAIN-01` [PARTIAL], `MS2-TRAIN-02` (for compute-budget calibration). Compute-heavy.
 - Story points: 4.
 
 ---
@@ -998,7 +998,7 @@ Strict dependency-respecting linearization. Items at the same level are parallel
 3. `MS2-INFRA-03` [DONE] MS2 CLI interface
 4. `MS2-DATA-01` [DONE] Data stack — length-cap freeze, tokenizer, char vocab, tf.data pipeline (sub-deliverables A → B → C, sequential within the ticket)
 5. **Parallel batch (a)**:
-   - `MS2-TRAIN-01` Training utilities
+   - `MS2-TRAIN-01` [PARTIAL] Training utilities
    - `MS2-EVAL-01` Metrics implementation and Arabic post-normalization
 6. **Parallel batch (b)** — Model A and Model B implementations can run in parallel:
    - Model A: `MS2-MODEL-A-01` → `MS2-MODEL-A-02` → `MS2-MODEL-A-03`
