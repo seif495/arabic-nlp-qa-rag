@@ -110,12 +110,16 @@ def test_train_one_run_writes_artifacts_and_respects_budget(
         def evaluate(self, _dataset: object) -> dict[str, float]:
             return {"em": 0.5, "token_f1": 0.6, "char_edit_distance": 0.2, "bleu1": 0.4}
 
+        def evaluate_test(self, _dataset: object) -> dict[str, float]:
+            return {"em": 0.4, "token_f1": 0.55, "char_edit_distance": 0.25, "bleu1": 0.35}
+
     run_config = RunConfig(model_id="A", seed=13, wall_clock_budget_minutes=1)
     summary = train_one_run(DummyModel(), [1, 2, 3, 4], [1], run_config)
 
     run_dir = tmp_path / "experiments" / "ms2" / "model_a" / "13"
     assert summary.model_id == "A"
-    assert (run_dir / "train_step_losses.json").exists()
-    assert (run_dir / "dev_metrics.json").exists()
-    assert (run_dir / "checkpoint_last.json").exists()
-    assert (run_dir / "run_summary.json").exists()
+    assert summary.test_token_f1 == pytest.approx(0.55)
+    assert (run_dir / "curves" / "train_step_losses.json").exists()
+    assert (run_dir / "curves" / "dev_metrics.json").exists()
+    assert (run_dir / "checkpoints" / "last.json").exists()
+    assert (run_dir / "run_summary_v001.json").exists()
