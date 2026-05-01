@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import types
 from typing import Any
 
 try:
@@ -17,8 +18,11 @@ else:  # pragma: no cover
 
 
 def _supports_tensor_ops() -> bool:
-    required_attrs = ("cast", "constant", "cos", "where", "minimum", "maximum")
-    return tf is not None and all(hasattr(tf, attr) for attr in required_attrs)
+    return (
+        tf is not None
+        and isinstance(tf, types.ModuleType)
+        and tf.__name__ == "tensorflow"
+    )
 
 
 class CosineWithWarmup(_ScheduleBase):
