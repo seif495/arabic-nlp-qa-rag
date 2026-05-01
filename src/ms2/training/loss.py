@@ -25,11 +25,6 @@ def label_smoothed_cross_entropy(
     """
     if not 0 <= smoothing < 1:
         raise ValueError("smoothing must be in [0, 1)")
-    if len(logits) != len(targets) or len(targets) != len(mask):
-        raise ValueError("logits, targets, and mask must have equal length")
-    if not logits:
-        return 0.0
-
     try:
         import tensorflow as tf  # type: ignore[import-not-found]
     except ImportError:
@@ -56,6 +51,11 @@ def label_smoothed_cross_entropy(
             tf.reduce_sum(masked_loss) / token_count,
             tf.constant(0.0, dtype=tf.float32),
         )
+
+    if len(logits) != len(targets) or len(targets) != len(mask):
+        raise ValueError("logits, targets, and mask must have equal length")
+    if not logits:
+        return 0.0
 
     total_loss = 0.0
     token_count = 0
