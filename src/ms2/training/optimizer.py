@@ -26,6 +26,7 @@ class OptimizerBundle:
     decay_variables: tuple[str, ...]
     teacher_forcing_ratio: float
     gradient_clip_norm: float
+    applies_selective_weight_decay: bool
 
 
 def build_adamw(
@@ -45,6 +46,8 @@ def build_adamw(
     The return value is a small integration bundle that keeps the constructed
     optimizer object plus a variable-name filter callable for weight-decay
     exclusions (embeddings, layernorm params, and biases).
+    Note: The exclusion info is returned for caller-side enforcement (or loop-side) 
+    until enforced internally by the optimizer itself.
     """
 
     try:
@@ -76,4 +79,5 @@ def build_adamw(
         decay_variables=decay_variables,
         teacher_forcing_ratio=1.0,
         gradient_clip_norm=gradient_clip_norm,
+        applies_selective_weight_decay=False,
     )

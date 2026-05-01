@@ -113,7 +113,16 @@ def train_one_run(
             getattr(model, "mean_inference_time_ms_per_example", 0.0)
         ),
     )
-    _write_json(run_dir / "run_summary_v001.json", run_summary.to_dict())
+    summary_payload = run_summary.to_dict()
+    summary_payload["optimizer_contract"] = {
+        "selective_weight_decay_enforced": False,
+        "note": "decay_var_filter metadata exists but selective application is pending",
+    }
+    if not callable(evaluate_test):
+        summary_payload["test_metrics_fallback"] = True
+        summary_payload["test_metrics_note"] = "test metrics defaulted to final dev metrics"
+
+    _write_json(run_dir / "run_summary_v001.json", summary_payload)
     LOGGER.info(
         "MS2 training finished for %s wall_clock_minutes=%.2f budget_minutes=%s",
         run_summary.run_id,
