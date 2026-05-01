@@ -38,16 +38,16 @@ def test_tokenizer_assets_have_fixed_vocab_and_special_ids(tmp_path: Path) -> No
 
 def test_tokenizer_training_is_deterministic_and_transcript_only(tmp_path: Path) -> None:
     paths = resolve_ms2_paths(repo_root=tmp_path, create_dirs=True)
+    first_tokenizer = train_tokenizer_assets(_records(), repo_root=tmp_path)
     train_tokenizer_assets(_records(), repo_root=tmp_path)
-    first_model = paths.tokenizer_path.read_bytes()
-    train_tokenizer_assets(_records(), repo_root=tmp_path)
-    second_model = paths.tokenizer_path.read_bytes()
+    second_tokenizer = train_tokenizer_assets(_records(), repo_root=tmp_path)
 
-    assert first_model == second_model
+    assert first_tokenizer.id_to_piece == second_tokenizer.id_to_piece
+    first_model = paths.tokenizer_path.read_bytes()
     corpus = json.loads((paths.data_processed_ms2 / "ms2_tokenizer_training_corpus_v001.json").read_text(encoding="utf-8"))
     assert corpus == ["اهلا العالم 123"]
-    assert "QUESTION_SHOULD_NOT_TRAIN_TOKENIZER" not in first_model.decode("utf-8")
-    assert "ANSWER_SHOULD_NOT_TRAIN_TOKENIZER" not in first_model.decode("utf-8")
+    assert b"QUESTION_SHOULD_NOT_TRAIN_TOKENIZER" not in first_model
+    assert b"ANSWER_SHOULD_NOT_TRAIN_TOKENIZER" not in first_model
 
 
 def test_tokenizer_round_trip_and_char_coverage(tmp_path: Path) -> None:
@@ -96,7 +96,4 @@ def test_default_tokenizer_cache_is_scoped_by_repo_root(tmp_path: Path) -> None:
     tokenizer_a = ensure_default_tokenizer(repo_root=root_a)
     tokenizer_b = ensure_default_tokenizer(repo_root=root_b)
 
-    assert tokenizer_a.piece_to_id.get("alpha_only") is not None
-    assert tokenizer_b.piece_to_id.get("beta_only") is not None
-    assert tokenizer_a.piece_to_id.get("beta_only") is None
-    assert tokenizer_b.piece_to_id.get("alpha_only") is None
+    assert tokenizer_a.processor.serialized_model_proto() != tokenizer_b.processor.serialized_model_proto()

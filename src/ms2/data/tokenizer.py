@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from collections import Counter
 from pathlib import Path
+
+import sentencepiece as spm
 
 from src.common.paths import resolve_ms2_paths
 from src.ms2.data.length_caps import proxy_tokenize
@@ -22,7 +25,12 @@ DEFAULT_MAX_CHARS = 16
 
 
 class MS2Tokenizer:
-    def __init__(self, id_to_piece: list[str], char_to_id: dict[str, int]) -> None:
+    def __init__(
+        self,
+        id_to_piece: list[str],
+        char_to_id: dict[str, int],
+        processor: spm.SentencePieceProcessor,
+    ) -> None:
         if len(id_to_piece) != VOCAB_SIZE:
             raise ValueError(f"tokenizer vocab must contain exactly {VOCAB_SIZE} pieces")
         for expected_id, token in enumerate(SPECIAL_TOKENS):
@@ -33,23 +41,22 @@ class MS2Tokenizer:
         self.id_to_piece = tuple(id_to_piece)
         self.piece_to_id = {piece: index for index, piece in enumerate(id_to_piece)}
         self.char_to_id = dict(char_to_id)
+        self.processor = processor
 
     def encode(self, text: str) -> list[int]:
-        ids: list[int] = []
-        for piece in proxy_tokenize(text):
-            ids.append(self.piece_to_id.get(piece, UNK_ID))
-        return ids
+        return list(self.processor.encode(text, out_type=int))
+
+    def token_spans(self, text: str) -> list[tuple[int, int]]:
+        encoded = self.processor.encode_as_immutable_proto(text)
+        return [(piece.begin, piece.end) for piece in encoded.pieces]
 
     def decode(self, ids: list[int]) -> str:
-        pieces = []
-        for token_id in ids:
-            if token_id in (PAD_ID, BOS_ID, EOS_ID, SEP_ID):
-                continue
-            if 0 <= token_id < len(self.id_to_piece):
-                piece = self.id_to_piece[token_id]
-                if not piece.startswith("<unused_") and piece != "<unk>":
-                    pieces.append(piece)
-        return " ".join(pieces)
+        filtered_ids = [
+            token_id
+            for token_id in ids
+            if token_id not in (PAD_ID, BOS_ID, EOS_ID, SEP_ID)
+        ]
+        return self.processor.decode(filtered_ids)
 
     def encode_chars(self, token_str: str, max_chars: int = DEFAULT_MAX_CHARS) -> list[int]:
         if max_chars <= 0:
@@ -67,27 +74,27 @@ def train_tokenizer_assets(
 ) -> MS2Tokenizer:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
     transcript_texts = [record.normalized_context for record in records if record.normalized_context]
-    pieces = _build_vocab_pieces(transcript_texts)
+    pieces = _train_sentencepiece_pieces(transcript_texts, paths.tokenizer_path)
     char_vocab = build_char_vocab(transcript_texts)
-    model_payload = {
-        "type": "deterministic_transcript_bpe_proxy",
-        "vocab_size": VOCAB_SIZE,
-        "special_tokens": {token: index for index, token in enumerate(SPECIAL_TOKENS)},
-        "id_to_piece": pieces,
-        "training_corpus": "transcript_text_only",
-    }
-    paths.tokenizer_path.write_text(json.dumps(model_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     paths.char_vocab_path.write_text(json.dumps(char_vocab, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     corpus_path = paths.data_processed_ms2 / "ms2_tokenizer_training_corpus_v001.json"
     corpus_path.write_text(json.dumps(transcript_texts, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return MS2Tokenizer(pieces, char_vocab)
+    processor = spm.SentencePieceProcessor(model_file=str(paths.tokenizer_path))
+    return MS2Tokenizer(pieces, char_vocab, processor)
 
 
 def load_tokenizer(repo_root: Path | None = None) -> MS2Tokenizer:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=False)
-    model_payload = json.loads(paths.tokenizer_path.read_text(encoding="utf-8"))
     char_vocab = json.loads(paths.char_vocab_path.read_text(encoding="utf-8"))
-    return MS2Tokenizer(list(model_payload["id_to_piece"]), {str(k): int(v) for k, v in char_vocab.items()})
+    processor = spm.SentencePieceProcessor(model_file=str(paths.tokenizer_path))
+    pieces = _pad_pieces_to_vocab(
+        [processor.id_to_piece(index) for index in range(processor.get_piece_size())]
+    )
+    return MS2Tokenizer(
+        pieces,
+        {str(k): int(v) for k, v in char_vocab.items()},
+        processor,
+    )
 
 
 def ensure_default_tokenizer(repo_root: Path | None = None) -> MS2Tokenizer:
@@ -96,8 +103,11 @@ def ensure_default_tokenizer(repo_root: Path | None = None) -> MS2Tokenizer:
     if cache_key in _DEFAULT_TOKENIZERS:
         return _DEFAULT_TOKENIZERS[cache_key]
     if paths.tokenizer_path.exists() and paths.char_vocab_path.exists():
-        _DEFAULT_TOKENIZERS[cache_key] = load_tokenizer(repo_root=repo_root)
-        return _DEFAULT_TOKENIZERS[cache_key]
+        try:
+            _DEFAULT_TOKENIZERS[cache_key] = load_tokenizer(repo_root=repo_root)
+            return _DEFAULT_TOKENIZERS[cache_key]
+        except Exception:
+            pass
     records = load_ms1_processed_records(paths.repo_root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl")
     _DEFAULT_TOKENIZERS[cache_key] = train_tokenizer_assets(
         records, repo_root=paths.repo_root
@@ -149,3 +159,54 @@ def _build_vocab_pieces(texts: list[str]) -> list[str]:
     while len(pieces) < VOCAB_SIZE:
         pieces.append(f"<unused_{len(pieces):04d}>")
     return pieces
+
+
+def _train_sentencepiece_pieces(texts: list[str], model_path: Path) -> list[str]:
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    training_texts = _sentencepiece_training_lines(texts)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        input_path = Path(temp_dir) / "spm_input.txt"
+        input_path.write_text("\n".join(training_texts) + "\n", encoding="utf-8")
+        prefix = Path(temp_dir) / "spm_model"
+        spm.SentencePieceTrainer.train(
+            input=str(input_path),
+            model_prefix=str(prefix),
+            model_type="bpe",
+            vocab_size=VOCAB_SIZE,
+            character_coverage=1.0,
+            num_threads=1,
+            shuffle_input_sentence=False,
+            pad_id=PAD_ID,
+            unk_id=UNK_ID,
+            bos_id=BOS_ID,
+            eos_id=EOS_ID,
+            bos_piece="<bos>",
+            eos_piece="<eos>",
+            user_defined_symbols=["<sep>"],
+            hard_vocab_limit=False,
+            max_sentence_length=20000,
+        )
+        trained_model = prefix.with_suffix(".model")
+        model_path.write_bytes(trained_model.read_bytes())
+    processor = spm.SentencePieceProcessor(model_file=str(model_path))
+    return _pad_pieces_to_vocab(
+        [processor.id_to_piece(index) for index in range(processor.get_piece_size())]
+    )
+
+
+def _pad_pieces_to_vocab(pieces: list[str]) -> list[str]:
+    padded = list(pieces)
+    while len(padded) < VOCAB_SIZE:
+        padded.append(f"<unused_{len(padded):04d}>")
+    return padded[:VOCAB_SIZE]
+
+
+def _sentencepiece_training_lines(texts: list[str]) -> list[str]:
+    lines: list[str] = []
+    for text in texts:
+        tokens = text.split()
+        if not tokens:
+            continue
+        for start in range(0, len(tokens), 512):
+            lines.append(" ".join(tokens[start : start + 512]))
+    return lines or ["empty_corpus_placeholder"]

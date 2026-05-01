@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import random
-import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
@@ -19,7 +18,6 @@ TARGET_TOKENS_PER_BATCH = 16_384
 SHUFFLE_BUFFER = 4096
 JITTER_FRACTION = 0.2
 L_CHAR_MAX = 16
-TOKEN_PATTERN = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 
 
 @dataclass(frozen=True)
@@ -92,10 +90,12 @@ def select_context_window(
         radius = int(LENGTH_CAPS["l_c"] * JITTER_FRACTION)
         jitter = generator.randint(-radius, radius)
     window_start = max(0, min(center + jitter - LENGTH_CAPS["l_c"] // 2, len(tokens) - LENGTH_CAPS["l_c"]))
-    return _slice_text_by_token_window(
+    return _bounded_token_window_text(
         text=record.normalized_context,
+        spans=tokenizer.token_spans(record.normalized_context),
         token_start=window_start,
         token_end=window_start + LENGTH_CAPS["l_c"],
+        tokenizer=tokenizer,
     )
 
 
@@ -110,7 +110,15 @@ def inference_sliding_windows(text: str, tokenizer: MS2Tokenizer) -> list[str]:
         window_ids = token_ids[start : start + cap]
         if not window_ids:
             break
-        windows.append(tokenizer.decode(window_ids))
+        windows.append(
+            _bounded_token_window_text(
+                text=text,
+                spans=tokenizer.token_spans(text),
+                token_start=start,
+                token_end=start + cap,
+                tokenizer=tokenizer,
+            )
+        )
         if start + cap >= len(token_ids):
             break
     return windows
@@ -178,8 +186,12 @@ def _find_subsequence(values: list[int], needle: list[int]) -> int:
     return -1
 
 
-def _slice_text_by_token_window(text: str, token_start: int, token_end: int) -> str:
-    spans = [match.span() for match in TOKEN_PATTERN.finditer(text)]
+def _slice_text_by_token_window(
+    text: str,
+    spans: list[tuple[int, int]],
+    token_start: int,
+    token_end: int,
+) -> str:
     if not spans:
         return text
     start_index = max(0, min(token_start, len(spans) - 1))
@@ -187,3 +199,17 @@ def _slice_text_by_token_window(text: str, token_start: int, token_end: int) -> 
     char_start = spans[start_index][0]
     char_end = spans[end_index - 1][1]
     return text[char_start:char_end]
+
+
+def _bounded_token_window_text(
+    text: str,
+    spans: list[tuple[int, int]],
+    token_start: int,
+    token_end: int,
+    tokenizer: MS2Tokenizer,
+) -> str:
+    window = _slice_text_by_token_window(text, spans, token_start, token_end)
+    while len(tokenizer.encode(window)) > LENGTH_CAPS["l_c"] and token_end > token_start + 1:
+        token_end -= 1
+        window = _slice_text_by_token_window(text, spans, token_start, token_end)
+    return window
