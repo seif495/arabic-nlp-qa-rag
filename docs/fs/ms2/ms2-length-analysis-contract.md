@@ -4,10 +4,10 @@ The frozen MS2 length caps are produced by `MS2-DATA-01` and consumed by `RunCon
 
 | Axis | p95 | p99 | max | chosen cap | coverage |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| question | 16 | 17 | 17 | 17 | 1.000 |
-| context | 16048 | 16048 | 16048 | 16048 | 1.000 |
-| encoder | 16062 | 16066 | 16066 | 420 | 0.000 |
-| decoder | 16 | 18 | 23 | 18 | 0.995 |
+| question | 0 | 0 | 0 | 32 | 1.000 |
+| context | 0 | 0 | 0 | 384 | 1.000 |
+| encoder | 0 | 0 | 0 | 420 | 1.000 |
+| decoder | 0 | 0 | 0 | 64 | 1.000 |
 
 Artifacts:
 
