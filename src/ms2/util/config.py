@@ -1,10 +1,14 @@
 ### ~~~ GLOBAL IMPORTS ~~~ ###
 from pathlib import Path
-
+from typing import TypeVar
 import yaml
+
 
 ### ~~~ LOCAL IMPORTS ~~~ ###
 from .paths import PipelineStep, config_path
+
+### ~~~ STATE MANAGEMENT ~~~ ###
+T = TypeVar("T")
 
 
 def load_pipeline_config(step: PipelineStep) -> dict:
@@ -32,7 +36,12 @@ def load_pipeline_config(step: PipelineStep) -> dict:
     return loaded
 
 
-def get_config_value(config: dict, section: str, key: str, default: object) -> object:
+def get_config_value(
+    config: dict,
+    section: str,
+    key: str,
+    default: T,
+) -> T:
     """
     This function gets a config value with a default fallback.
     Args:

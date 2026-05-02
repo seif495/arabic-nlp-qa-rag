@@ -1,4 +1,3 @@
 ---
 embedder:
   token_embedding_dim: 128
-  char_embedding_dim: 32
