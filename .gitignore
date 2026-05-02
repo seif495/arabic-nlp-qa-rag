@@ -3,6 +3,7 @@ __pycache__/
 *.py[codz]
 *$py.class
 todo.md
+plan-to-solve-the-issues.md
 experiments/
 
 # C extensions
