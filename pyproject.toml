@@ -12,6 +12,9 @@ dependencies = [
     "sentencepiece>=0.2.1",
 ]
 
+[project.optional-dependencies]
+ml = ["tensorflow>=2.16.0"]
+
 [project.scripts]
 ms1 = "src.cli.ms1:main"
 ms2 = "src.cli.ms2:main"
