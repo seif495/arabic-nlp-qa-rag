@@ -59,7 +59,7 @@ class RunConfig:
     bucket_boundaries: tuple[int, ...] = (128, 192, 256, 320, 420)
     target_tokens_per_batch: int = 16_384
     lr_schedule: LRSchedule = "cosine_with_warmup"
-    wall_clock_budget_minutes: int = 75
+    wall_clock_budget_minutes: float = 75.0
     label_smoothing: float = 0.1
     gradient_clip_norm: float = 1.0
 
