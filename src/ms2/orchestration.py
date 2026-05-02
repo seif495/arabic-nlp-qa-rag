@@ -251,22 +251,81 @@ def evaluate(
     )
     output_path = paths.run_output_dir / f"{split}_metrics.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(
-            {
-                "status": "missing_predictions_or_checkpoint",
-                "metrics": {
-                    "em": None,
-                    "token_f1": None,
-                    "char_edit_distance": None,
-                    "bleu1": None,
+
+    pred_path = paths.run_output_dir / f"{split}_greedy_predictions.jsonl"
+    if not pred_path.exists() or pred_path.stat().st_size == 0:
+        pred_path = paths.run_output_dir / f"{split}_beam_predictions.jsonl"
+    if not pred_path.exists() or pred_path.stat().st_size == 0:
+        output_path.write_text(
+            json.dumps(
+                {
+                    "status": "missing_predictions",
+                    "model": model,
+                    "seed": seed,
+                    "split": split,
+                    "metrics": {
+                        "em": None,
+                        "token_f1": None,
+                        "char_edit_distance": None,
+                        "bleu1": None,
+                    },
                 },
-            },
-            indent=2,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
         )
-        + "\n",
-        encoding="utf-8",
-    )
+        return CommandResult(
+            command="evaluate",
+            status="missing_predictions",
+            output_path=str(output_path),
+        )
+
+    from src.ms2.metrics.scoring import aggregate_metrics
+    import datetime
+
+    rows = [
+        json.loads(line)
+        for line in pred_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    predictions = [r["prediction_text"] for r in rows]
+    references = [r["reference_text"] for r in rows]
+    metrics = aggregate_metrics(predictions, references)
+
+    payload: dict = {
+        "status": "ok",
+        "model": model,
+        "seed": seed,
+        "split": split,
+        "num_examples": len(rows),
+        "em": metrics["em"],
+        "token_f1": metrics["token_f1"],
+        "char_edit_distance": metrics["char_edit_distance"],
+        "bleu1": metrics["bleu1"],
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+    }
+    output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    summary_path = paths.run_output_dir / "run_summary_v001.json"
+    if summary_path.exists():
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        prefix = "dev_" if split == "dev" else "test_"
+        summary[f"{prefix}em"] = metrics["em"]
+        summary[f"{prefix}token_f1"] = metrics["token_f1"]
+        summary[f"{prefix}char_edit_distance"] = metrics["char_edit_distance"]
+        summary[f"{prefix}bleu1"] = metrics["bleu1"]
+        bench = paths.experiments_ms2 / "inference_benchmark_v001.json"
+        if bench.exists():
+            bench_data = json.loads(bench.read_text(encoding="utf-8"))
+            if "mean_latency_ms_per_example" in bench_data:
+                summary["mean_inference_time_ms_per_example"] = bench_data[
+                    "mean_latency_ms_per_example"
+                ]
+        summary_path.write_text(
+            json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+        )
+
     return CommandResult(
         command="evaluate",
         status="ok",
