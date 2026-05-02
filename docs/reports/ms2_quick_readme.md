@@ -10,23 +10,23 @@ Install the normal dev environment:
 uv sync --dev
 ```
 
-Install/run with TensorFlow enabled:
+Verify TensorFlow:
 
 ```bash
-uv run --extra ml python -c "import tensorflow as tf; print(tf.__version__)"
+uv run python -c "import tensorflow as tf; print(tf.__version__)"
 ```
 
 Run the full MS2 pipeline smoke:
 
 ```bash
-uv run --extra ml python -m src.cli.ms2 run-all --force-from analyze-lengths
+uv run python -m src.cli.ms2 run-all --force-from analyze-lengths
 ```
 
 Run tests:
 
 ```bash
-uv run --extra ml pytest tests/ms2
-uv run --extra ml pytest tests/cli
+uv run pytest tests/ms2
+uv run pytest tests/cli
 uv run ruff check .
 uv run ruff format . --check
 ```

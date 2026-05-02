@@ -5,10 +5,10 @@
 Command executed:
 
 ```bash
-uv run --extra ml python -m src.cli.ms2 run-all --force-from analyze-lengths
+uv run python -m src.cli.ms2 run-all --force-from analyze-lengths
 ```
 
-TensorFlow was installed through the optional `ml` extra after clearing the `uv` cache. The verified TensorFlow version was `2.21.0`.
+TensorFlow was installed as a normal project dependency after clearing the `uv` cache. The verified TensorFlow version was `2.21.0`.
 
 The full MS2 pipeline smoke completed successfully. The canonical log is `experiments/ms2/run_all_log_v001.txt`.
 
@@ -16,16 +16,16 @@ The full MS2 pipeline smoke completed successfully. The canonical log is `experi
 
 From `experiments/ms2/run_all_log_v001.txt`:
 
-| Stage | Count | Representative outputs | Wall-clock |
-| --- | ---: | --- | ---: |
-| `analyze-lengths` | 1 | `docs/fs/ms2/ms2-length-analysis-contract.md` | 81.995581s |
-| `prep-data` | 2 | `data/processed/ms2/ms2_tfrecords_train_v001.dir/target_model_a`, `target_model_b` | 13.881638s, 112.565601s |
-| `train` | 6 | `experiments/ms2/model_{a,b}/{13,42,91}/run_summary_v001.json` | placeholder-fast |
-| `infer` | 6 | `dev_greedy_predictions.jsonl` per model/seed | placeholder-fast |
-| `evaluate` | 6 | `dev_metrics.json` per model/seed | placeholder-fast |
-| `evaluate-protocol` | 1 | `experiments/ms2/evaluation_protocol.json` | 0.014700s |
-| `ablate` | 3 | Model A ablation run summaries for seed 13 | placeholder-fast |
-| `compare` | 1 | `docs/reports/ms2_headline_table.md` | 0.003295s |
+| Stage               | Count | Representative outputs                                                             |              Wall-clock |
+| ------------------- | ----: | ---------------------------------------------------------------------------------- | ----------------------: |
+| `analyze-lengths`   |     1 | `docs/fs/ms2/ms2-length-analysis-contract.md`                                      |              81.995581s |
+| `prep-data`         |     2 | `data/processed/ms2/ms2_tfrecords_train_v001.dir/target_model_a`, `target_model_b` | 13.881638s, 112.565601s |
+| `train`             |     6 | `experiments/ms2/model_{a,b}/{13,42,91}/run_summary_v001.json`                     |        placeholder-fast |
+| `infer`             |     6 | `dev_greedy_predictions.jsonl` per model/seed                                      |        placeholder-fast |
+| `evaluate`          |     6 | `dev_metrics.json` per model/seed                                                  |        placeholder-fast |
+| `evaluate-protocol` |     1 | `experiments/ms2/evaluation_protocol.json`                                         |               0.014700s |
+| `ablate`            |     3 | Model A ablation run summaries for seed 13                                         |        placeholder-fast |
+| `compare`           |     1 | `docs/reports/ms2_headline_table.md`                                               |               0.003295s |
 
 The slow stages were length analysis and data preparation because they scan/tokenize the MS1 processed dataset and retrain/cache SentencePiece/pipeline artifacts. The train/eval stages are intentionally fast because this run validated orchestration, schemas, paths, and artifact materialization, not the six 75-minute model training jobs.
 
@@ -34,7 +34,7 @@ The slow stages were length analysis and data preparation because they scan/toke
 Command executed:
 
 ```bash
-uv run --extra ml pytest tests/ms2/test_model_a_branches.py tests/ms2/test_model_a_middle.py tests/ms2/test_model_a_full.py tests/ms2/test_rope.py tests/ms2/test_transformer_attention.py tests/ms2/test_transformer_encoder.py tests/ms2/test_model_b_full.py
+uv run pytest tests/ms2/test_model_a_branches.py tests/ms2/test_model_a_middle.py tests/ms2/test_model_a_full.py tests/ms2/test_rope.py tests/ms2/test_transformer_attention.py tests/ms2/test_transformer_encoder.py tests/ms2/test_model_b_full.py
 ```
 
 Result: `21 passed`.
@@ -52,10 +52,10 @@ The TensorFlow-backed validation covered:
 
 Actual audits were generated with TensorFlow after model construction:
 
-| Model | Audit artifact | Parameters | Required range | Status |
-| --- | --- | ---: | ---: | --- |
-| A | `docs/fs/artifacts/ms2/model_a_parameter_audit_v001.json` | 2,875,811 | 2.4M-3.0M | in range |
-| B | `docs/fs/artifacts/ms2/model_b_parameter_audit_v001.json` | 3,407,344 | 3.4M-4.2M | in range |
+| Model | Audit artifact                                            | Parameters | Required range | Status   |
+| ----- | --------------------------------------------------------- | ---------: | -------------: | -------- |
+| A     | `docs/fs/artifacts/ms2/model_a_parameter_audit_v001.json` |  2,875,811 |      2.4M-3.0M | in range |
+| B     | `docs/fs/artifacts/ms2/model_b_parameter_audit_v001.json` |  3,407,344 |      3.4M-4.2M | in range |
 
 Model B required a documented implementation adjustment: the direct Keras implementation with the ADR's FFN size `512` audited at 3,314,944 parameters, below the ticket's hard lower bound of 3.4M. The FFN hidden size was raised to `552`, bringing the model to 3,407,344 parameters while preserving depth, heads, RoPE placement, embedding tying, decoder/cache behavior, and `d_model=192`. This deviation is documented in `docs/fs/ms2/model-b-architecture-card.md`.
 

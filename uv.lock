@@ -302,10 +302,6 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "sentencepiece" },
-]
-
-[package.optional-dependencies]
-ml = [
     { name = "tensorflow" },
 ]
 
@@ -318,9 +314,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "sentencepiece", specifier = ">=0.2.1" },
-    { name = "tensorflow", marker = "extra == 'ml'", specifier = ">=2.16.0" },
+    { name = "tensorflow", specifier = ">=2.21.0" },
 ]
-provides-extras = ["ml"]
 
 [package.metadata.requires-dev]
 dev = [
