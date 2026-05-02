@@ -1,0 +1,4 @@
+{
+  "status": "not_run_compute_bound",
+  "note": "Inference code paths are implemented. Per-model benchmark requires trained checkpoints and TensorFlow runtime; TensorFlow install failed in this environment due no space left on device."
+}
