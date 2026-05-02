@@ -30,6 +30,8 @@ class PipelineExample:
     decoder_target_ids: list[int]
     loss_mask: list[bool]
     char_matrix: list[list[int]] | None
+    question_ids: list[int] | None = None
+    context_ids: list[int] | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -50,13 +52,13 @@ def build_pipeline_example(
         training=training,
         rng=rng,
     )
-    question_ids = tokenizer.encode(record.question_text)[: LENGTH_CAPS["l_q"]]
-    context_ids = tokenizer.encode(context_text)[: LENGTH_CAPS["l_c"]]
+    raw_question_ids = tokenizer.encode(record.question_text)[: LENGTH_CAPS["l_q"]]
+    raw_context_ids = tokenizer.encode(context_text)[: LENGTH_CAPS["l_c"]]
     answer_ids = tokenizer.encode(record.answer_text)[
         : max(0, LENGTH_CAPS["l_dec"] - 1)
     ]
     encoder = _pad(
-        [BOS_ID, *question_ids, SEP_ID, *context_ids, EOS_ID], LENGTH_CAPS["l_enc"]
+        [BOS_ID, *raw_question_ids, SEP_ID, *raw_context_ids, EOS_ID], LENGTH_CAPS["l_enc"]
     )
     decoder_input = _pad([BOS_ID, *answer_ids], LENGTH_CAPS["l_dec"])
     decoder_target = _pad([*answer_ids, EOS_ID], LENGTH_CAPS["l_dec"])
@@ -73,6 +75,8 @@ def build_pipeline_example(
         decoder_target_ids=decoder_target,
         loss_mask=[token_id != PAD_ID for token_id in decoder_target],
         char_matrix=char_matrix,
+        question_ids=_pad(raw_question_ids, LENGTH_CAPS["l_q"]),
+        context_ids=_pad(raw_context_ids, LENGTH_CAPS["l_c"]),
     )
 
 
