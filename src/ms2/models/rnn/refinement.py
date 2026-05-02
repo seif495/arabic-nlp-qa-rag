@@ -15,6 +15,8 @@ class RefinementBiGRU(tf.keras.layers.Layer):
             name="refinement_bigru",
         )
 
-    def call(self, fused: tf.Tensor, mask: tf.Tensor | None = None, training: bool = False) -> tuple[tf.Tensor, tf.Tensor]:
+    def call(
+        self, fused: tf.Tensor, mask: tf.Tensor | None = None, training: bool = False
+    ) -> tuple[tf.Tensor, tf.Tensor]:
         output, fwd_state, bwd_state = self.bigru(fused, mask=mask, training=training)
         return output, tf.concat([fwd_state, bwd_state], axis=-1)

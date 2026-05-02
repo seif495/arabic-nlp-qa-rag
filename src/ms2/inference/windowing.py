@@ -5,7 +5,9 @@ from collections.abc import Callable, Sequence
 from src.ms2.inference.greedy import DecodeResult
 
 
-def sliding_context_windows(tokens: Sequence[int], l_c: int = 384) -> list[tuple[int, list[int]]]:
+def sliding_context_windows(
+    tokens: Sequence[int], l_c: int = 384
+) -> list[tuple[int, list[int]]]:
     """Split contexts with stride `L_c / 2`, ADR §1.3."""
     if l_c <= 0:
         raise ValueError("l_c must be positive")
@@ -29,5 +31,8 @@ def select_best_window(
     l_c: int = 384,
 ) -> tuple[int, DecodeResult]:
     """Decode all windows and select by length-normalized score."""
-    scored = [(start, decode_window(window)) for start, window in sliding_context_windows(tokens, l_c=l_c)]
+    scored = [
+        (start, decode_window(window))
+        for start, window in sliding_context_windows(tokens, l_c=l_c)
+    ]
     return max(scored, key=lambda item: item[1].normalized_score)

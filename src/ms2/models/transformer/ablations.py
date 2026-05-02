@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-
 @dataclass(frozen=True)
 class ModelBAblationFlags:
     positional_mode: str = "rope"
@@ -24,4 +23,6 @@ def build_model_b_ablation(variant: str):
     from src.ms2.models.transformer.model_b import ModelB
 
     flags = flags_for_variant(variant)
-    return ModelB(positional_mode=flags.positional_mode, shared_layers=flags.shared_layers)
+    return ModelB(
+        positional_mode=flags.positional_mode, shared_layers=flags.shared_layers
+    )

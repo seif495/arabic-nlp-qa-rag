@@ -46,7 +46,9 @@ def test_length_distribution_reports_percentiles_and_encoder_coverage() -> None:
 
 
 def test_run_length_analysis_writes_json_and_histograms(tmp_path: Path) -> None:
-    dataset = tmp_path / "data" / "processed" / "ms1" / "ms1_dataset_processed_v001.jsonl"
+    dataset = (
+        tmp_path / "data" / "processed" / "ms1" / "ms1_dataset_processed_v001.jsonl"
+    )
     dataset.parent.mkdir(parents=True)
     dataset.write_text(
         json.dumps(
@@ -65,11 +67,17 @@ def test_run_length_analysis_writes_json_and_histograms(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = run_length_analysis(repo_root=tmp_path, tokenizer=lambda text: text.split())
+    result = run_length_analysis(
+        repo_root=tmp_path, tokenizer=lambda text: text.split()
+    )
 
     assert result["encoder_coverage_verified"] is True
-    assert (tmp_path / "experiments" / "ms2" / "ms2_length_distribution_v001.json").is_file()
-    histograms = list((tmp_path / "docs" / "fs" / "artifacts" / "ms2").glob("length_*.png"))
+    assert (
+        tmp_path / "experiments" / "ms2" / "ms2_length_distribution_v001.json"
+    ).is_file()
+    histograms = list(
+        (tmp_path / "docs" / "fs" / "artifacts" / "ms2").glob("length_*.png")
+    )
     assert len(histograms) == 8
 
 

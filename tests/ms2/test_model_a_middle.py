@@ -26,7 +26,9 @@ class TestModelAMiddle(unittest.TestCase):
         branches = tuple(tf.random.normal((2, 8, 192)) for _ in range(3))
         fused, gates = GatedMerge()(branches)
         self.assertEqual(tuple(fused.shape), (2, 8, 192))
-        self.assertTrue(tf.reduce_all(tf.abs(tf.reduce_sum(gates, axis=-1) - 1.0) < 1e-5).numpy())
+        self.assertTrue(
+            tf.reduce_all(tf.abs(tf.reduce_sum(gates, axis=-1) - 1.0) < 1e-5).numpy()
+        )
 
     def test_mean_merge_hard_codes_uniform_gates(self) -> None:
         branches = tuple(tf.random.normal((2, 8, 192)) for _ in range(3))

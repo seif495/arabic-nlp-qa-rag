@@ -32,7 +32,9 @@ class MS2Tokenizer:
         processor: spm.SentencePieceProcessor,
     ) -> None:
         if len(id_to_piece) != VOCAB_SIZE:
-            raise ValueError(f"tokenizer vocab must contain exactly {VOCAB_SIZE} pieces")
+            raise ValueError(
+                f"tokenizer vocab must contain exactly {VOCAB_SIZE} pieces"
+            )
         for expected_id, token in enumerate(SPECIAL_TOKENS):
             if id_to_piece[expected_id] != token:
                 raise ValueError(f"special token {token} must have id {expected_id}")
@@ -58,10 +60,15 @@ class MS2Tokenizer:
         ]
         return self.processor.decode(filtered_ids)
 
-    def encode_chars(self, token_str: str, max_chars: int = DEFAULT_MAX_CHARS) -> list[int]:
+    def encode_chars(
+        self, token_str: str, max_chars: int = DEFAULT_MAX_CHARS
+    ) -> list[int]:
         if max_chars <= 0:
             raise ValueError("max_chars must be positive")
-        encoded = [self.char_to_id.get(ch, self.char_to_id[CHAR_UNK]) for ch in token_str[:max_chars]]
+        encoded = [
+            self.char_to_id.get(ch, self.char_to_id[CHAR_UNK])
+            for ch in token_str[:max_chars]
+        ]
         return encoded + [self.char_to_id[CHAR_PAD]] * (max_chars - len(encoded))
 
 
@@ -73,12 +80,19 @@ def train_tokenizer_assets(
     repo_root: Path | None = None,
 ) -> MS2Tokenizer:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
-    transcript_texts = [record.normalized_context for record in records if record.normalized_context]
+    transcript_texts = [
+        record.normalized_context for record in records if record.normalized_context
+    ]
     pieces = _train_sentencepiece_pieces(transcript_texts, paths.tokenizer_path)
     char_vocab = build_char_vocab(transcript_texts)
-    paths.char_vocab_path.write_text(json.dumps(char_vocab, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    paths.char_vocab_path.write_text(
+        json.dumps(char_vocab, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     corpus_path = paths.data_processed_ms2 / "ms2_tokenizer_training_corpus_v001.json"
-    corpus_path.write_text(json.dumps(transcript_texts, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    corpus_path.write_text(
+        json.dumps(transcript_texts, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     processor = spm.SentencePieceProcessor(model_file=str(paths.tokenizer_path))
     return MS2Tokenizer(pieces, char_vocab, processor)
 
@@ -108,7 +122,9 @@ def ensure_default_tokenizer(repo_root: Path | None = None) -> MS2Tokenizer:
             return _DEFAULT_TOKENIZERS[cache_key]
         except Exception:
             pass
-    records = load_ms1_processed_records(paths.repo_root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl")
+    records = load_ms1_processed_records(
+        paths.repo_root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl"
+    )
     _DEFAULT_TOKENIZERS[cache_key] = train_tokenizer_assets(
         records, repo_root=paths.repo_root
     )
@@ -137,7 +153,10 @@ def build_char_vocab(texts: list[str]) -> dict[str, int]:
 
 
 def verify_special_token_ids(tokenizer: MS2Tokenizer) -> bool:
-    return all(tokenizer.piece_to_id[token] == index for index, token in enumerate(SPECIAL_TOKENS))
+    return all(
+        tokenizer.piece_to_id[token] == index
+        for index, token in enumerate(SPECIAL_TOKENS)
+    )
 
 
 def verify_char_coverage(texts: list[str], tokenizer: MS2Tokenizer) -> bool:
@@ -149,7 +168,10 @@ def _build_vocab_pieces(texts: list[str]) -> list[str]:
     for text in texts:
         counts.update(proxy_tokenize(text))
         counts.update(ch for ch in text if not ch.isspace())
-    ranked = [piece for piece, _ in sorted(counts.items(), key=lambda item: (-item[1], item[0]))]
+    ranked = [
+        piece
+        for piece, _ in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    ]
     pieces = list(SPECIAL_TOKENS)
     for piece in ranked:
         if piece not in pieces:

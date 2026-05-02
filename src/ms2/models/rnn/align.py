@@ -14,7 +14,11 @@ class BranchAligner(tf.keras.layers.Layer):
         question_lengths: tf.Tensor,
         context_length: int | tf.Tensor | None = None,
     ) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
-        l_c = tf.shape(b2_seq)[1] if context_length is None else tf.cast(context_length, tf.int32)
+        l_c = (
+            tf.shape(b2_seq)[1]
+            if context_length is None
+            else tf.cast(context_length, tf.int32)
+        )
         b1_aligned = tf.tile(b1_pooled[:, None, :], (1, l_c, 1))
         starts = tf.cast(question_lengths, tf.int32) + 2
         offsets = starts[:, None] + tf.range(l_c, dtype=tf.int32)[None, :]

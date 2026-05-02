@@ -17,7 +17,13 @@ def causal_mask(length: tf.Tensor | int) -> tf.Tensor:
 class MultiHeadSelfAttention(tf.keras.layers.Layer):
     """Direct matmul self-attention with RoPE on Q/K only."""
 
-    def __init__(self, use_rope: bool = True, dropout_attn: float = 0.1, max_length: int = 420, **kwargs: object) -> None:
+    def __init__(
+        self,
+        use_rope: bool = True,
+        dropout_attn: float = 0.1,
+        max_length: int = 420,
+        **kwargs: object,
+    ) -> None:
         super().__init__(**kwargs)
         self.use_rope = use_rope
         self.wq = tf.keras.layers.Dense(D_MODEL, name="self_wq")
@@ -29,7 +35,15 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         self.last_attention: tf.Tensor | None = None
         self.softmax_dtype: tf.dtypes.DType | None = None
 
-    def call(self, x: tf.Tensor, padding_mask: tf.Tensor | None = None, use_causal_mask: bool = False, training: bool = False, cache: dict[str, tf.Tensor] | None = None, start: int = 0) -> tuple[tf.Tensor, tf.Tensor]:
+    def call(
+        self,
+        x: tf.Tensor,
+        padding_mask: tf.Tensor | None = None,
+        use_causal_mask: bool = False,
+        training: bool = False,
+        cache: dict[str, tf.Tensor] | None = None,
+        start: int = 0,
+    ) -> tuple[tf.Tensor, tf.Tensor]:
         q = _split_heads(self.wq(x))
         k = _split_heads(self.wk(x))
         v = _split_heads(self.wv(x))
@@ -42,7 +56,9 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
                 v = tf.concat([cache["v"], v], axis=2)
             cache["k"], cache["v"] = k, v
         scores = tf.matmul(q, k, transpose_b=True) / math.sqrt(D_HEAD)
-        scores = _apply_masks(scores, padding_mask=padding_mask, use_causal_mask=use_causal_mask)
+        scores = _apply_masks(
+            scores, padding_mask=padding_mask, use_causal_mask=use_causal_mask
+        )
         attn = tf.nn.softmax(tf.cast(scores, tf.float32), axis=-1)
         self.softmax_dtype = attn.dtype
         attn = tf.cast(attn, v.dtype)
@@ -64,7 +80,14 @@ class MultiHeadCrossAttention(tf.keras.layers.Layer):
         self.rope = None
         self.last_attention: tf.Tensor | None = None
 
-    def call(self, x: tf.Tensor, encoder_output: tf.Tensor, encoder_padding_mask: tf.Tensor | None = None, training: bool = False, cache: dict[str, tf.Tensor] | None = None) -> tuple[tf.Tensor, tf.Tensor]:
+    def call(
+        self,
+        x: tf.Tensor,
+        encoder_output: tf.Tensor,
+        encoder_padding_mask: tf.Tensor | None = None,
+        training: bool = False,
+        cache: dict[str, tf.Tensor] | None = None,
+    ) -> tuple[tf.Tensor, tf.Tensor]:
         q = _split_heads(self.wq(x))
         if cache is not None and "k" in cache:
             k, v = cache["k"], cache["v"]
@@ -74,10 +97,14 @@ class MultiHeadCrossAttention(tf.keras.layers.Layer):
             if cache is not None:
                 cache["k"], cache["v"] = k, v
         scores = tf.matmul(q, k, transpose_b=True) / math.sqrt(D_HEAD)
-        scores = _apply_masks(scores, padding_mask=encoder_padding_mask, use_causal_mask=False)
+        scores = _apply_masks(
+            scores, padding_mask=encoder_padding_mask, use_causal_mask=False
+        )
         attn = tf.cast(tf.nn.softmax(tf.cast(scores, tf.float32), axis=-1), v.dtype)
         self.last_attention = attn
-        return self.wo(_merge_heads(tf.matmul(self.dropout(attn, training=training), v))), attn
+        return self.wo(
+            _merge_heads(tf.matmul(self.dropout(attn, training=training), v))
+        ), attn
 
 
 def _split_heads(x: tf.Tensor) -> tf.Tensor:
@@ -92,13 +119,21 @@ def _merge_heads(x: tf.Tensor) -> tf.Tensor:
     return tf.reshape(x, (shape[0], shape[1], D_MODEL))
 
 
-def _apply_masks(scores: tf.Tensor, padding_mask: tf.Tensor | None, use_causal_mask: bool) -> tf.Tensor:
+def _apply_masks(
+    scores: tf.Tensor, padding_mask: tf.Tensor | None, use_causal_mask: bool
+) -> tf.Tensor:
     if padding_mask is not None:
         key_mask = tf.cast(padding_mask[:, None, None, :], tf.bool)
-        scores = tf.where(key_mask, scores, tf.fill(tf.shape(scores), tf.constant(-1e9, scores.dtype)))
+        scores = tf.where(
+            key_mask, scores, tf.fill(tf.shape(scores), tf.constant(-1e9, scores.dtype))
+        )
     if use_causal_mask:
         mask = causal_mask(tf.shape(scores)[-2])
         if tf.shape(scores)[-1] != tf.shape(scores)[-2]:
             mask = tf.ones((tf.shape(scores)[-2], tf.shape(scores)[-1]), dtype=tf.bool)
-        scores = tf.where(mask[None, None, :, :], scores, tf.fill(tf.shape(scores), tf.constant(-1e9, scores.dtype)))
+        scores = tf.where(
+            mask[None, None, :, :],
+            scores,
+            tf.fill(tf.shape(scores), tf.constant(-1e9, scores.dtype)),
+        )
     return scores

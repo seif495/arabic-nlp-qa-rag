@@ -13,6 +13,7 @@ except ImportError:  # pragma: no cover
 if tf is not None:
     _ScheduleBase = tf.keras.optimizers.schedules.LearningRateSchedule
 else:  # pragma: no cover
+
     class _ScheduleBase:
         pass
 
@@ -65,7 +66,9 @@ class CosineWithWarmup(_ScheduleBase):
 
         warmup_lr = peak_lr * (step_tensor / warmup_steps)
         decay_steps = tf.maximum(total_steps - warmup_steps, 1.0)
-        progress = tf.clip_by_value((step_tensor - warmup_steps) / decay_steps, 0.0, 1.0)
+        progress = tf.clip_by_value(
+            (step_tensor - warmup_steps) / decay_steps, 0.0, 1.0
+        )
         cosine = 0.5 * (1.0 + tf.cos(math.pi * progress))
         decay_lr = min_lr + (peak_lr - min_lr) * cosine
         after_warmup = tf.where(step_tensor >= total_steps, min_lr, decay_lr)

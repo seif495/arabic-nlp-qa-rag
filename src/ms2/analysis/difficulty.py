@@ -20,5 +20,15 @@ def normalize_difficulty(value: str) -> str:
 
 def write_difficulty_placeholder(path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"status": "missing_trained_checkpoint", "buckets": {bucket: None for bucket in DIFFICULTY_BUCKETS}}, indent=2) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(
+            {
+                "status": "missing_trained_checkpoint",
+                "buckets": {bucket: None for bucket in DIFFICULTY_BUCKETS},
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return path

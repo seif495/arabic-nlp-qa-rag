@@ -71,12 +71,16 @@ def train_one_run(
                 best_dev_f1 = f1_value
                 _write_checkpoint(checkpoints_dir / "best.json", step_index, metrics)
 
-    final_metrics = dev_metrics[-1] if dev_metrics else {
-        "em": 0.0,
-        "token_f1": 0.0,
-        "char_edit_distance": 1.0,
-        "bleu1": 0.0,
-    }
+    final_metrics = (
+        dev_metrics[-1]
+        if dev_metrics
+        else {
+            "em": 0.0,
+            "token_f1": 0.0,
+            "char_edit_distance": 1.0,
+            "bleu1": 0.0,
+        }
+    )
     _write_checkpoint(checkpoints_dir / "last.json", len(step_losses), final_metrics)
     _write_json(curves_dir / "train_step_losses.json", step_losses)
     _write_json(curves_dir / "dev_metrics.json", dev_metrics)
@@ -127,7 +131,9 @@ def train_one_run(
     }
     if not callable(evaluate_test):
         summary_payload["test_metrics_fallback"] = True
-        summary_payload["test_metrics_note"] = "test metrics defaulted to final dev metrics"
+        summary_payload["test_metrics_note"] = (
+            "test metrics defaulted to final dev metrics"
+        )
 
     _write_json(run_dir / "run_summary_v001.json", summary_payload)
     LOGGER.info(

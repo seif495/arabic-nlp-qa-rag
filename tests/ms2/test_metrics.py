@@ -53,7 +53,10 @@ class TestScoringMetrics(unittest.TestCase):
         self.assertEqual(token_f1("الذهب", "الفضة"), 0.0)
         self.assertAlmostEqual(token_f1("الذهب الاصفر", "الذهب الابيض"), 0.5)
         self.assertAlmostEqual(token_f1("الذهب", "الذهب الاصفر"), 2 * 1.0 * 0.5 / 1.5)
-        self.assertAlmostEqual(token_f1("الذهب الاصفر اللامع", "الذهب الاصفر"), 2 * (2 / 3) * 1.0 / ((2 / 3) + 1.0))
+        self.assertAlmostEqual(
+            token_f1("الذهب الاصفر اللامع", "الذهب الاصفر"),
+            2 * (2 / 3) * 1.0 / ((2 / 3) + 1.0),
+        )
 
     def test_char_edit_distance_cases(self) -> None:
         self.assertEqual(char_edit_distance_normalized("أحمد", "احمد"), 0.0)

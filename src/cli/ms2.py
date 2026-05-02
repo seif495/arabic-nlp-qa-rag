@@ -177,10 +177,7 @@ def _dispatch(args: argparse.Namespace, repo_root: Path) -> CommandResult:
 
 
 def _print_result(result: CommandResult) -> None:
-    message = (
-        f"[{result.command}] status={result.status} "
-        f"output={result.output_path}"
-    )
+    message = f"[{result.command}] status={result.status} output={result.output_path}"
     if result.elapsed_seconds is not None:
         message = f"{message} wall_clock_seconds={result.elapsed_seconds:.6f}"
     if result.budget_warning:

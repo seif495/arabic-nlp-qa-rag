@@ -55,8 +55,18 @@ class TestModelAFull(unittest.TestCase):
         for _ in range(3):
             with tf.GradientTape() as tape:
                 logits = model(batch, training=True)["logits"]
-                loss = tf.reduce_mean(tf.keras.losses.sparse_categorical_crossentropy(targets, logits, from_logits=True))
-            opt.apply_gradients(zip(tape.gradient(loss, model.trainable_variables), model.trainable_variables, strict=False))
+                loss = tf.reduce_mean(
+                    tf.keras.losses.sparse_categorical_crossentropy(
+                        targets, logits, from_logits=True
+                    )
+                )
+            opt.apply_gradients(
+                zip(
+                    tape.gradient(loss, model.trainable_variables),
+                    model.trainable_variables,
+                    strict=False,
+                )
+            )
             losses.append(float(loss))
         self.assertLessEqual(losses[-1], losses[0])
 

@@ -52,8 +52,12 @@ def build_pipeline_example(
     )
     question_ids = tokenizer.encode(record.question_text)[: LENGTH_CAPS["l_q"]]
     context_ids = tokenizer.encode(context_text)[: LENGTH_CAPS["l_c"]]
-    answer_ids = tokenizer.encode(record.answer_text)[: max(0, LENGTH_CAPS["l_dec"] - 1)]
-    encoder = _pad([BOS_ID, *question_ids, SEP_ID, *context_ids, EOS_ID], LENGTH_CAPS["l_enc"])
+    answer_ids = tokenizer.encode(record.answer_text)[
+        : max(0, LENGTH_CAPS["l_dec"] - 1)
+    ]
+    encoder = _pad(
+        [BOS_ID, *question_ids, SEP_ID, *context_ids, EOS_ID], LENGTH_CAPS["l_enc"]
+    )
     decoder_input = _pad([BOS_ID, *answer_ids], LENGTH_CAPS["l_dec"])
     decoder_target = _pad([*answer_ids, EOS_ID], LENGTH_CAPS["l_dec"])
     char_matrix = None
@@ -89,7 +93,12 @@ def select_context_window(
         generator = rng or random.Random()
         radius = int(LENGTH_CAPS["l_c"] * JITTER_FRACTION)
         jitter = generator.randint(-radius, radius)
-    window_start = max(0, min(center + jitter - LENGTH_CAPS["l_c"] // 2, len(tokens) - LENGTH_CAPS["l_c"]))
+    window_start = max(
+        0,
+        min(
+            center + jitter - LENGTH_CAPS["l_c"] // 2, len(tokens) - LENGTH_CAPS["l_c"]
+        ),
+    )
     return _bounded_token_window_text(
         text=record.normalized_context,
         spans=tokenizer.token_spans(record.normalized_context),
@@ -128,7 +137,9 @@ def bucket_batch_sizes(
     boundaries: tuple[int, ...] = BUCKET_BOUNDARIES,
     target_tokens_per_batch: int = TARGET_TOKENS_PER_BATCH,
 ) -> dict[int, int]:
-    return {boundary: max(1, target_tokens_per_batch // boundary) for boundary in boundaries}
+    return {
+        boundary: max(1, target_tokens_per_batch // boundary) for boundary in boundaries
+    }
 
 
 def write_pipeline_cache(
@@ -138,7 +149,9 @@ def write_pipeline_cache(
     target_model: TargetModel = "a",
     split: str = "train",
 ) -> Path:
-    paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True, split=f"{split}_{target_model}")
+    paths = resolve_ms2_paths(
+        repo_root=repo_root, create_dirs=True, split=f"{split}_{target_model}"
+    )
     cache_path = paths.tfrecord_shard_dir / "examples.jsonl"
     if cache_path.exists():
         return cache_path
@@ -157,9 +170,22 @@ def write_pipeline_cache(
     return cache_path
 
 
-def _encoder_pieces(question_text: str, context_text: str, tokenizer: MS2Tokenizer) -> list[str]:
-    ids = [BOS_ID, *tokenizer.encode(question_text), SEP_ID, *tokenizer.encode(context_text), EOS_ID]
-    pieces = [tokenizer.id_to_piece[token_id] if 0 <= token_id < len(tokenizer.id_to_piece) else "<unk>" for token_id in ids]
+def _encoder_pieces(
+    question_text: str, context_text: str, tokenizer: MS2Tokenizer
+) -> list[str]:
+    ids = [
+        BOS_ID,
+        *tokenizer.encode(question_text),
+        SEP_ID,
+        *tokenizer.encode(context_text),
+        EOS_ID,
+    ]
+    pieces = [
+        tokenizer.id_to_piece[token_id]
+        if 0 <= token_id < len(tokenizer.id_to_piece)
+        else "<unk>"
+        for token_id in ids
+    ]
     return pieces[: LENGTH_CAPS["l_enc"]]
 
 
@@ -172,7 +198,10 @@ def _pad_char_matrix(
     tokenizer: MS2Tokenizer,
     target_length: int,
 ) -> list[list[int]]:
-    rows = [tokenizer.encode_chars(piece, max_chars=L_CHAR_MAX) for piece in pieces[:target_length]]
+    rows = [
+        tokenizer.encode_chars(piece, max_chars=L_CHAR_MAX)
+        for piece in pieces[:target_length]
+    ]
     pad_row = [tokenizer.char_to_id["<pad>"]] * L_CHAR_MAX
     return rows + [pad_row] * max(0, target_length - len(rows))
 
@@ -209,7 +238,10 @@ def _bounded_token_window_text(
     tokenizer: MS2Tokenizer,
 ) -> str:
     window = _slice_text_by_token_window(text, spans, token_start, token_end)
-    while len(tokenizer.encode(window)) > LENGTH_CAPS["l_c"] and token_end > token_start + 1:
+    while (
+        len(tokenizer.encode(window)) > LENGTH_CAPS["l_c"]
+        and token_end > token_start + 1
+    ):
         token_end -= 1
         window = _slice_text_by_token_window(text, spans, token_start, token_end)
     return window

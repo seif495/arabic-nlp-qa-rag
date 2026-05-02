@@ -42,6 +42,8 @@ def greedy_decode(
     return DecodeResult(tokens, log_prob, _length_normalized(log_prob, len(tokens)))
 
 
-def _length_normalized(log_probability: float, length: int, alpha: float = 0.6) -> float:
+def _length_normalized(
+    log_probability: float, length: int, alpha: float = 0.6
+) -> float:
     # Wu et al. length normalization, explicitly required by MS2-INFER-01.
     return log_probability / (((5 + max(length, 1)) / 6) ** alpha)

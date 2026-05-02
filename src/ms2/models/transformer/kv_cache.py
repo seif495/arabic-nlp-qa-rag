@@ -14,7 +14,10 @@ class KVCache:
 
     @classmethod
     def for_layers(cls, n_layers: int) -> KVCache:
-        return cls(self_attention=[{} for _ in range(n_layers)], cross_attention=[{} for _ in range(n_layers)])
+        return cls(
+            self_attention=[{} for _ in range(n_layers)],
+            cross_attention=[{} for _ in range(n_layers)],
+        )
 
     def populated_steps(self) -> int:
         if not self.self_attention or "k" not in self.self_attention[0]:

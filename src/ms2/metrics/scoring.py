@@ -49,11 +49,17 @@ def bleu1(prediction: str, reference: str) -> float:
     precision = clipped / len(pred_tokens)
     if precision == 0.0:
         return 0.0
-    brevity = 1.0 if len(pred_tokens) > len(ref_tokens) else pow(2.718281828459045, 1 - len(ref_tokens) / len(pred_tokens))
+    brevity = (
+        1.0
+        if len(pred_tokens) > len(ref_tokens)
+        else pow(2.718281828459045, 1 - len(ref_tokens) / len(pred_tokens))
+    )
     return brevity * precision
 
 
-def aggregate_metrics(predictions: Sequence[str], references: Sequence[str]) -> dict[str, float]:
+def aggregate_metrics(
+    predictions: Sequence[str], references: Sequence[str]
+) -> dict[str, float]:
     """Aggregate MS2 metric values into a RunSummary-compatible metric dict."""
     if len(predictions) != len(references):
         raise ValueError("predictions and references must have the same length")
@@ -63,7 +69,10 @@ def aggregate_metrics(predictions: Sequence[str], references: Sequence[str]) -> 
     return {
         "em": sum(exact_match(pred, ref) for pred, ref in pairs) / len(pairs),
         "token_f1": sum(token_f1(pred, ref) for pred, ref in pairs) / len(pairs),
-        "char_edit_distance": sum(char_edit_distance_normalized(pred, ref) for pred, ref in pairs) / len(pairs),
+        "char_edit_distance": sum(
+            char_edit_distance_normalized(pred, ref) for pred, ref in pairs
+        )
+        / len(pairs),
         "bleu1": sum(bleu1(pred, ref) for pred, ref in pairs) / len(pairs),
     }
 

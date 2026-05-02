@@ -15,10 +15,18 @@ from src.ms2.data.pipeline import (
     write_pipeline_cache,
 )
 from src.ms2.data.records import MS2DatasetRecord
-from src.ms2.data.tokenizer import BOS_ID, EOS_ID, PAD_ID, SEP_ID, train_tokenizer_assets
+from src.ms2.data.tokenizer import (
+    BOS_ID,
+    EOS_ID,
+    PAD_ID,
+    SEP_ID,
+    train_tokenizer_assets,
+)
 
 
-def _record(context: str, answer: str = "tok5", split: str = "train") -> MS2DatasetRecord:
+def _record(
+    context: str, answer: str = "tok5", split: str = "train"
+) -> MS2DatasetRecord:
     return MS2DatasetRecord(
         sample_id="s1",
         transcript_id="t1",
@@ -44,7 +52,9 @@ def test_pipeline_formats_sequences_and_model_schemas(tmp_path: Path) -> None:
     assert len(model_a.encoder_input_ids) == LENGTH_CAPS["l_enc"]
     assert len(model_a.decoder_input_ids) == LENGTH_CAPS["l_dec"]
     assert len(model_a.decoder_target_ids) == LENGTH_CAPS["l_dec"]
-    assert model_a.loss_mask == [token_id != PAD_ID for token_id in model_a.decoder_target_ids]
+    assert model_a.loss_mask == [
+        token_id != PAD_ID for token_id in model_a.decoder_target_ids
+    ]
     assert model_a.char_matrix is not None
     assert len(model_a.char_matrix) == LENGTH_CAPS["l_enc"]
     assert len(model_a.char_matrix[0]) == 16
@@ -58,11 +68,15 @@ def test_training_context_jitter_is_bounded_and_centered(tmp_path: Path) -> None
     windows = []
 
     for seed in range(200):
-        window = select_context_window(record, tokenizer, training=True, rng=random.Random(seed))
+        window = select_context_window(
+            record, tokenizer, training=True, rng=random.Random(seed)
+        )
         windows.append(window)
 
     assert all("tok500" in window for window in windows)
-    assert all(len(tokenizer.encode(window)) <= LENGTH_CAPS["l_c"] for window in windows)
+    assert all(
+        len(tokenizer.encode(window)) <= LENGTH_CAPS["l_c"] for window in windows
+    )
     assert len(set(windows)) > 1
 
 
@@ -84,7 +98,9 @@ def test_inference_windows_bucket_sizes_and_cache_reuse(tmp_path: Path) -> None:
 
     windows = inference_sliding_windows(context, tokenizer)
     assert len(windows) > 1
-    assert all(len(tokenizer.encode(window)) <= LENGTH_CAPS["l_c"] for window in windows)
+    assert all(
+        len(tokenizer.encode(window)) <= LENGTH_CAPS["l_c"] for window in windows
+    )
     assert windows[0] != windows[1]
 
     batch_sizes = bucket_batch_sizes()
@@ -92,9 +108,14 @@ def test_inference_windows_bucket_sizes_and_cache_reuse(tmp_path: Path) -> None:
     for boundary, batch_size in batch_sizes.items():
         assert abs((boundary * batch_size) - TARGET_TOKENS_PER_BATCH) <= boundary
 
-    cache_path = write_pipeline_cache([record], tokenizer, repo_root=tmp_path, target_model="a")
+    cache_path = write_pipeline_cache(
+        [record], tokenizer, repo_root=tmp_path, target_model="a"
+    )
     cache_path.write_text("sentinel\n", encoding="utf-8")
-    assert write_pipeline_cache([record], tokenizer, repo_root=tmp_path, target_model="a") == cache_path
+    assert (
+        write_pipeline_cache([record], tokenizer, repo_root=tmp_path, target_model="a")
+        == cache_path
+    )
     assert cache_path.read_text(encoding="utf-8") == "sentinel\n"
 
 
@@ -114,11 +135,14 @@ def test_cache_training_jitter_uses_progressive_rng_state(tmp_path: Path) -> Non
     ]
     tokenizer = train_tokenizer_assets(records, repo_root=tmp_path)
 
-    cache_path = write_pipeline_cache(records, tokenizer, repo_root=tmp_path, target_model="a")
-    lines = [json.loads(line) for line in cache_path.read_text(encoding="utf-8").splitlines()]
+    cache_path = write_pipeline_cache(
+        records, tokenizer, repo_root=tmp_path, target_model="a"
+    )
+    lines = [
+        json.loads(line) for line in cache_path.read_text(encoding="utf-8").splitlines()
+    ]
     first_context_start = lines[0]["encoder_input_ids"].index(SEP_ID) + 1
     second_context_start = lines[1]["encoder_input_ids"].index(SEP_ID) + 1
 
     assert first_context_start == second_context_start
     assert lines[0]["encoder_input_ids"] != lines[1]["encoder_input_ids"]
-

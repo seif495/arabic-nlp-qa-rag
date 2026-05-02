@@ -23,7 +23,13 @@ def apply_rope(x: tf.Tensor, cos: tf.Tensor, sin: tf.Tensor) -> tf.Tensor:
 class RoPE(tf.keras.layers.Layer):
     """Rotary positional embeddings precomputed at build/init time, ADR §3.4."""
 
-    def __init__(self, max_length: int = 420, d_head: int = D_HEAD, theta_base: float = THETA_BASE, **kwargs: object) -> None:
+    def __init__(
+        self,
+        max_length: int = 420,
+        d_head: int = D_HEAD,
+        theta_base: float = THETA_BASE,
+        **kwargs: object,
+    ) -> None:
         super().__init__(trainable=False, **kwargs)
         self.max_length = max_length
         self.d_head = d_head
@@ -33,7 +39,9 @@ class RoPE(tf.keras.layers.Layer):
         self.cos_table = tf.Variable(tf.cos(angles), trainable=False, name="rope_cos")
         self.sin_table = tf.Variable(tf.sin(angles), trainable=False, name="rope_sin")
 
-    def tables(self, length: tf.Tensor | int, start: int = 0) -> tuple[tf.Tensor, tf.Tensor]:
+    def tables(
+        self, length: tf.Tensor | int, start: int = 0
+    ) -> tuple[tf.Tensor, tf.Tensor]:
         cos = self.cos_table[start : start + length]
         sin = self.sin_table[start : start + length]
         return cos[None, None, :, :], sin[None, None, :, :]

@@ -40,15 +40,11 @@ class MS2Paths:
             "data_external_ms2_cleaned_input": _to_relative(
                 self.data_external_ms2_cleaned_input, self.repo_root
             ),
-            "data_processed_ms2": _to_relative(
-                self.data_processed_ms2, self.repo_root
-            ),
+            "data_processed_ms2": _to_relative(self.data_processed_ms2, self.repo_root),
             "experiments_ms2": _to_relative(self.experiments_ms2, self.repo_root),
             "tokenizer_path": _to_relative(self.tokenizer_path, self.repo_root),
             "char_vocab_path": _to_relative(self.char_vocab_path, self.repo_root),
-            "tfrecord_shard_dir": _to_relative(
-                self.tfrecord_shard_dir, self.repo_root
-            ),
+            "tfrecord_shard_dir": _to_relative(self.tfrecord_shard_dir, self.repo_root),
             "run_output_dir": _to_relative(self.run_output_dir, self.repo_root),
             "report_dir": _to_relative(self.report_dir, self.repo_root),
         }

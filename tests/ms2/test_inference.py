@@ -14,7 +14,9 @@ class TinyDecodable:
     def init_state(self, encoder_inputs: object) -> dict[str, object]:
         return {"encoder_inputs": encoder_inputs, "steps": 0}
 
-    def step(self, state: dict[str, object], last_token: int) -> tuple[list[float], dict[str, object]]:
+    def step(
+        self, state: dict[str, object], last_token: int
+    ) -> tuple[list[float], dict[str, object]]:
         del last_token
         steps = int(state["steps"])
         state = {**state, "steps": steps + 1}
@@ -41,7 +43,15 @@ class TestInference(unittest.TestCase):
         self.assertEqual([start for start, _ in windows], [0, 2, 4, 6])
         start, result = select_best_window(
             list(range(10)),
-            lambda window: type("R", (), {"normalized_score": float(window[0]), "token_ids": [], "log_probability": 0.0})(),
+            lambda window: type(
+                "R",
+                (),
+                {
+                    "normalized_score": float(window[0]),
+                    "token_ids": [],
+                    "log_probability": 0.0,
+                },
+            )(),
             l_c=4,
         )
         self.assertEqual(start, 6)

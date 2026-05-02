@@ -30,7 +30,9 @@ def test_build_adamw_applies_loss_scale_and_decay_filter(
     fake_tf = types.SimpleNamespace(
         keras=types.SimpleNamespace(
             optimizers=types.SimpleNamespace(AdamW=FakeAdamW),
-            mixed_precision=types.SimpleNamespace(LossScaleOptimizer=FakeLossScaleOptimizer),
+            mixed_precision=types.SimpleNamespace(
+                LossScaleOptimizer=FakeLossScaleOptimizer
+            ),
         )
     )
     monkeypatch.setitem(__import__("sys").modules, "tensorflow", fake_tf)
@@ -47,13 +49,18 @@ def test_build_adamw_applies_loss_scale_and_decay_filter(
     assert bundle.optimizer.inner.kwargs["global_clipnorm"] == 1.0
     assert bundle.decay_variables == ("encoder/kernel:0",)
     assert bundle.excluded_decay_variables == ("decoder/bias:0", "shared/embedding:0")
-    assert bundle.optimizer.inner.excluded_var_names == ["decoder/bias", "shared/embedding"]
+    assert bundle.optimizer.inner.excluded_var_names == [
+        "decoder/bias",
+        "shared/embedding",
+    ]
     assert bundle.teacher_forcing_ratio == 1.0
     assert bundle.gradient_clip_norm == 1.0
     assert bundle.applies_selective_weight_decay is True
 
 
-def test_schedules_subclass_learning_rate_schedule(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_schedules_subclass_learning_rate_schedule(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class FakeScheduleBase:
         pass
 
@@ -80,7 +87,9 @@ def test_schedules_subclass_learning_rate_schedule(monkeypatch: pytest.MonkeyPat
 def test_schedule_values_follow_expected_shapes() -> None:
     from src.ms2.training.schedules import CosineWithWarmup, Noam
 
-    cosine = CosineWithWarmup(total_steps=100, peak_lr=3e-4, min_lr=1e-5, warmup_ratio=0.05)
+    cosine = CosineWithWarmup(
+        total_steps=100, peak_lr=3e-4, min_lr=1e-5, warmup_ratio=0.05
+    )
     assert cosine(1) < cosine(5)
     assert cosine(100) == pytest.approx(1e-5)
 
@@ -97,8 +106,12 @@ def test_label_smoothed_cross_entropy_perfect_predictions_and_mask() -> None:
     near_zero = label_smoothed_cross_entropy(logits, targets, mask, smoothing=0.0)
     assert near_zero < 1e-6
 
-    masked_loss = label_smoothed_cross_entropy(logits, targets, [True, False], smoothing=0.0)
-    changed_padded = label_smoothed_cross_entropy(logits, [0, 0], [True, False], smoothing=0.0)
+    masked_loss = label_smoothed_cross_entropy(
+        logits, targets, [True, False], smoothing=0.0
+    )
+    changed_padded = label_smoothed_cross_entropy(
+        logits, [0, 0], [True, False], smoothing=0.0
+    )
     assert masked_loss == pytest.approx(changed_padded)
 
 
@@ -108,7 +121,9 @@ def test_train_one_run_writes_artifacts_and_respects_budget(
     monkeypatch.setattr("src.ms2.training.loop.Path.cwd", lambda: tmp_path)
 
     clock_values = iter([0.0, 0.1, 0.2, 0.3, 70.0, 70.1, 70.2, 70.3])
-    monkeypatch.setattr("src.ms2.training.loop.time.monotonic", lambda: next(clock_values))
+    monkeypatch.setattr(
+        "src.ms2.training.loop.time.monotonic", lambda: next(clock_values)
+    )
 
     class DummyModel:
         parameter_count = 123
@@ -122,7 +137,12 @@ def test_train_one_run_writes_artifacts_and_respects_budget(
             return {"em": 0.5, "token_f1": 0.6, "char_edit_distance": 0.2, "bleu1": 0.4}
 
         def evaluate_test(self, _dataset: object) -> dict[str, float]:
-            return {"em": 0.4, "token_f1": 0.55, "char_edit_distance": 0.25, "bleu1": 0.35}
+            return {
+                "em": 0.4,
+                "token_f1": 0.55,
+                "char_edit_distance": 0.25,
+                "bleu1": 0.35,
+            }
 
     run_config = RunConfig(model_id="A", seed=13, wall_clock_budget_minutes=1)
     summary = train_one_run(DummyModel(), [1, 2, 3, 4], [1], run_config)

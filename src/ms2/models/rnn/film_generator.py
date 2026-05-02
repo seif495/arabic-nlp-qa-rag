@@ -7,10 +7,14 @@ D_FILM_H = 128
 
 
 class _FilmBiasInitializer(tf.keras.initializers.Initializer):
-    def __call__(self, shape: tuple[int, ...], dtype: tf.dtypes.DType | None = None) -> tf.Tensor:
+    def __call__(
+        self, shape: tuple[int, ...], dtype: tf.dtypes.DType | None = None
+    ) -> tf.Tensor:
         if shape[-1] != 2 * D_DEC:
             raise ValueError("FiLM bias last dimension must be 2*d_dec")
-        return tf.concat([tf.ones((D_DEC,), dtype=dtype), tf.zeros((D_DEC,), dtype=dtype)], axis=0)
+        return tf.concat(
+            [tf.ones((D_DEC,), dtype=dtype), tf.zeros((D_DEC,), dtype=dtype)], axis=0
+        )
 
 
 class FiLMGenerator(tf.keras.layers.Layer):
@@ -18,7 +22,9 @@ class FiLMGenerator(tf.keras.layers.Layer):
 
     def __init__(self, **kwargs: object) -> None:
         super().__init__(**kwargs)
-        self.hidden = tf.keras.layers.Dense(D_FILM_H, activation=tf.keras.activations.gelu, name="film_hidden")
+        self.hidden = tf.keras.layers.Dense(
+            D_FILM_H, activation=tf.keras.activations.gelu, name="film_hidden"
+        )
         self.out = tf.keras.layers.Dense(
             2 * D_DEC,
             kernel_initializer=tf.keras.initializers.RandomNormal(stddev=1e-3),

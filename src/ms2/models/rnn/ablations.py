@@ -24,4 +24,8 @@ def build_model_a_ablation(variant: str):
     from src.ms2.models.rnn.model_a import ModelA
 
     flags = flags_for_variant(variant)
-    return ModelA(no_film=flags.no_film, mean_merge=flags.mean_merge, plain_branch3=flags.plain_branch3)
+    return ModelA(
+        no_film=flags.no_film,
+        mean_merge=flags.mean_merge,
+        plain_branch3=flags.plain_branch3,
+    )

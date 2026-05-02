@@ -47,7 +47,7 @@ def build_adamw(
     The return value is a small integration bundle that keeps the constructed
     optimizer object plus a variable-name filter callable for weight-decay
     exclusions (embeddings, layernorm params, and biases).
-    Note: The exclusion info is returned for caller-side enforcement (or loop-side) 
+    Note: The exclusion info is returned for caller-side enforcement (or loop-side)
     until enforced internally by the optimizer itself.
     """
 
@@ -73,7 +73,9 @@ def build_adamw(
     applies_selective_weight_decay = False
     if tracked_variables is not None:
         tracked = tuple(tracked_variables)
-        decay_variables = tuple(variable.name for variable in tracked if var_filter(variable.name))
+        decay_variables = tuple(
+            variable.name for variable in tracked if var_filter(variable.name)
+        )
         excluded_decay_variables = tuple(
             variable.name for variable in tracked if not var_filter(variable.name)
         )
@@ -84,7 +86,9 @@ def build_adamw(
         )
         exclude_callable = getattr(inner_optimizer, "exclude_from_weight_decay", None)
         if callable(exclude_callable):
-            excluded_names = [name.split(":", 1)[0] for name in excluded_decay_variables]
+            excluded_names = [
+                name.split(":", 1)[0] for name in excluded_decay_variables
+            ]
             try:
                 exclude_callable(var_names=excluded_names)
             except TypeError:

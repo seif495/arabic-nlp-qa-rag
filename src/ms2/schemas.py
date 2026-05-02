@@ -16,6 +16,7 @@ AblationVariant = Literal[
     "shared_layers",
 ]
 
+
 def _freeze_json_value(value: Any) -> Any:
     if isinstance(value, dict):
         return tuple((key, _freeze_json_value(value[key])) for key in sorted(value))

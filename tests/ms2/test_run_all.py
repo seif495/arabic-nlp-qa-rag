@@ -32,9 +32,7 @@ def test_run_all_executes_full_matrix_and_writes_pipeline_artifacts(
 
     experiments_dir = tmp_path / "experiments" / "ms2"
     assert len(list(experiments_dir.glob("run_all_log_v*.txt"))) == 1
-    assert (
-        experiments_dir / "ms2_pipeline_integration_checklist_v001.md"
-    ).is_file()
+    assert (experiments_dir / "ms2_pipeline_integration_checklist_v001.md").is_file()
     assert (experiments_dir / "ms2_pipeline_known_limitations_v001.md").is_file()
 
 

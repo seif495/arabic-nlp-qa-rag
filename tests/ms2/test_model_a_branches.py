@@ -40,7 +40,9 @@ class TestModelABranches(unittest.TestCase):
     def test_char_cnn_kernel_sizes_and_output(self) -> None:
         emb = SharedTokenEmbedding()
         b3 = Branch3JointEncoder(emb)
-        self.assertEqual(tuple(conv.kernel_size[0] for conv in b3.char_cnn.convs), KERNEL_SIZES)
+        self.assertEqual(
+            tuple(conv.kernel_size[0] for conv in b3.char_cnn.convs), KERNEL_SIZES
+        )
         joint = tf.ones((2, 8), dtype=tf.int32)
         chars = tf.ones((2, 8, 16), dtype=tf.int32)
         out, mask = b3(joint, chars)

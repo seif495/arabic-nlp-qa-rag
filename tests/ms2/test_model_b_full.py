@@ -13,7 +13,9 @@ from src.ms2.models.transformer.model_b import ModelB, parameter_audit
 class TestModelBFull(unittest.TestCase):
     def test_forward_and_parameter_budget(self) -> None:
         model = ModelB()
-        outputs = model((tf.ones((2, 420), dtype=tf.int32), tf.ones((2, 8), dtype=tf.int32)))
+        outputs = model(
+            (tf.ones((2, 420), dtype=tf.int32), tf.ones((2, 8), dtype=tf.int32))
+        )
         self.assertEqual(tuple(outputs["logits"].shape), (2, 8, 4096))
         self.assertEqual(len(outputs["encoder_self_attn_weights"]), 3)
         self.assertEqual(len(outputs["decoder_cross_attn_weights"]), 3)
@@ -37,8 +39,18 @@ class TestModelBFull(unittest.TestCase):
         for _ in range(3):
             with tf.GradientTape() as tape:
                 logits = model((enc, dec), training=True)["logits"]
-                loss = tf.reduce_mean(tf.keras.losses.sparse_categorical_crossentropy(targets, logits, from_logits=True))
-            opt.apply_gradients(zip(tape.gradient(loss, model.trainable_variables), model.trainable_variables, strict=False))
+                loss = tf.reduce_mean(
+                    tf.keras.losses.sparse_categorical_crossentropy(
+                        targets, logits, from_logits=True
+                    )
+                )
+            opt.apply_gradients(
+                zip(
+                    tape.gradient(loss, model.trainable_variables),
+                    model.trainable_variables,
+                    strict=False,
+                )
+            )
             losses.append(float(loss))
         self.assertLessEqual(losses[-1], losses[0])
 

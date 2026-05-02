@@ -16,7 +16,13 @@ class CharCNN(tf.keras.layers.Layer):
         base_filters = d_charcnn // len(KERNEL_SIZES)
         filters = [base_filters, base_filters, d_charcnn - 2 * base_filters]
         self.convs = [
-            tf.keras.layers.Conv1D(filters=count, kernel_size=kernel, activation="relu", padding="valid", name=f"char_conv_k{kernel}")
+            tf.keras.layers.Conv1D(
+                filters=count,
+                kernel_size=kernel,
+                activation="relu",
+                padding="valid",
+                name=f"char_conv_k{kernel}",
+            )
             for kernel, count in zip(KERNEL_SIZES, filters, strict=True)
         ]
         self.pool = tf.keras.layers.GlobalMaxPool1D(name="char_global_max_pool")

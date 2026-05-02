@@ -57,7 +57,9 @@ def run_length_analysis(
 ) -> dict[str, object]:
     root = (repo_root or Path.cwd()).resolve()
     paths = resolve_ms2_paths(repo_root=root, create_dirs=True)
-    records = load_ms1_processed_records(dataset_path or root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl")
+    records = load_ms1_processed_records(
+        dataset_path or root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl"
+    )
     proxy_stats = analyze_length_distributions(records)
     if tokenizer is None:
         raise ValueError(
@@ -74,8 +76,12 @@ def run_length_analysis(
     output_path = paths.experiments_ms2 / make_ms2_output_filename(
         "length", "distribution", 1, "json"
     )
-    output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    write_length_histograms(records=records, output_dir=root / "docs/fs/artifacts/ms2", tokenizer=tokenizer)
+    output_path.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    write_length_histograms(
+        records=records, output_dir=root / "docs/fs/artifacts/ms2", tokenizer=tokenizer
+    )
     return result
 
 
@@ -120,7 +126,12 @@ def _percentile(values: list[int], percentile: float) -> int:
 
 
 def _cap_key(axis: str) -> str:
-    return {"question": "l_q", "context": "l_c", "encoder": "l_enc", "decoder": "l_dec"}[axis]
+    return {
+        "question": "l_q",
+        "context": "l_c",
+        "encoder": "l_enc",
+        "decoder": "l_dec",
+    }[axis]
 
 
 def _length_values(
@@ -167,9 +178,19 @@ def _write_histogram_png(path: Path, values: list[int]) -> None:
         rows.append(b"\x00" + bytes(row))
 
     raw = b"".join(rows)
-    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) + _png_chunk(b"IDAT", zlib.compress(raw)) + _png_chunk(b"IEND", b"")
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + _png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + _png_chunk(b"IDAT", zlib.compress(raw))
+        + _png_chunk(b"IEND", b"")
+    )
     path.write_bytes(png)
 
 
 def _png_chunk(kind: bytes, data: bytes) -> bytes:
-    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    return (
+        struct.pack(">I", len(data))
+        + kind
+        + data
+        + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    )

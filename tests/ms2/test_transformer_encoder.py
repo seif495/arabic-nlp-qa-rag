@@ -21,8 +21,13 @@ class TestTransformerEncoder(unittest.TestCase):
 
     def test_sinusoidal_and_no_pe_modes(self) -> None:
         emb = TransformerTokenEmbedding()
-        self.assertEqual(TransformerEncoder(emb, positional_mode="sinusoidal_pe").positional_mode, "sinusoidal_pe")
-        self.assertEqual(TransformerEncoder(emb, positional_mode="no_pe").positional_mode, "no_pe")
+        self.assertEqual(
+            TransformerEncoder(emb, positional_mode="sinusoidal_pe").positional_mode,
+            "sinusoidal_pe",
+        )
+        self.assertEqual(
+            TransformerEncoder(emb, positional_mode="no_pe").positional_mode, "no_pe"
+        )
 
 
 if __name__ == "__main__":

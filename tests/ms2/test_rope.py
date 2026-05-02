@@ -14,14 +14,19 @@ class TestRoPE(unittest.TestCase):
         x = tf.random.normal((2, 4, 8, D_HEAD))
         cos = tf.ones((1, 1, 8, D_HEAD // 2))
         sin = tf.zeros((1, 1, 8, D_HEAD // 2))
-        self.assertTrue(tf.reduce_all(tf.abs(apply_rope(x, cos, sin) - x) < 1e-6).numpy())
+        self.assertTrue(
+            tf.reduce_all(tf.abs(apply_rope(x, cos, sin) - x) < 1e-6).numpy()
+        )
 
     def test_norm_preservation_and_leading_dims(self) -> None:
         rope = RoPE(max_length=16)
         x = tf.random.normal((3, 2, 4, 5, D_HEAD))
         y = rope(x)
         self.assertEqual(tuple(y.shape), tuple(x.shape))
-        self.assertLess(float(tf.reduce_max(tf.abs(tf.norm(x, axis=-1) - tf.norm(y, axis=-1)))), 1e-5)
+        self.assertLess(
+            float(tf.reduce_max(tf.abs(tf.norm(x, axis=-1) - tf.norm(y, axis=-1)))),
+            1e-5,
+        )
 
     def test_frequency_table(self) -> None:
         freqs = rope_frequencies().numpy()
@@ -37,7 +42,9 @@ class TestRoPE(unittest.TestCase):
         k1 = apply_rope(k, *rope.tables(1, start=n))
         q2 = apply_rope(q, *rope.tables(1, start=m + delta))
         k2 = apply_rope(k, *rope.tables(1, start=n + delta))
-        self.assertAlmostEqual(float(tf.reduce_sum(q1 * k1)), float(tf.reduce_sum(q2 * k2)), places=5)
+        self.assertAlmostEqual(
+            float(tf.reduce_sum(q1 * k1)), float(tf.reduce_sum(q2 * k2)), places=5
+        )
 
 
 if __name__ == "__main__":
