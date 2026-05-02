@@ -11,7 +11,7 @@ from tqdm.auto import tqdm
 from src.common.paths import resolve_ms2_paths
 from src.ms2.data.length_caps import LENGTH_CAPS
 from src.ms2.data.pipeline import write_pipeline_cache
-from src.ms2.data.records import load_ms1_processed_records
+from src.ms2.data.records import load_ms2_cleaned_input_records
 from src.ms2.data.tokenizer import ensure_default_tokenizer
 from src.ms2.schemas import RunConfig, RunSummary
 from src.ms2.training.loss import label_smoothed_cross_entropy
@@ -47,8 +47,8 @@ def train_baseline_run(
     if not _cache_has_examples(train_cache_path) or not _cache_has_examples(
         dev_cache_path
     ):
-        records = load_ms1_processed_records(
-            repo_root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl"
+        records = load_ms2_cleaned_input_records(
+            resolve_ms2_paths(repo_root=repo_root, create_dirs=False)
         )
         tokenizer = ensure_default_tokenizer(repo_root=repo_root)
         write_pipeline_cache(

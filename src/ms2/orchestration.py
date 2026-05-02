@@ -10,7 +10,7 @@ from time import perf_counter
 from src.common.paths import MS2Paths, make_ms2_output_filename, resolve_ms2_paths
 from src.ms2.data.length_caps import run_length_analysis
 from src.ms2.data.pipeline import write_pipeline_cache
-from src.ms2.data.records import load_ms1_processed_records
+from src.ms2.data.records import load_ms2_cleaned_input_records
 from src.ms2.data.tokenizer import ensure_default_tokenizer, train_tokenizer_assets
 from src.ms2.schemas import RunConfig
 from src.ms2.analysis.compare import write_headline_tables
@@ -74,9 +74,7 @@ def analyze_lengths(repo_root: Path | None = None) -> CommandResult:
 
 def prep_data(repo_root: Path | None = None, target_model: str = "a") -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
-    records = load_ms1_processed_records(
-        paths.repo_root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl"
-    )
+    records = load_ms2_cleaned_input_records(paths)
     tokenizer = train_tokenizer_assets(records=records, repo_root=paths.repo_root)
     for split in ("train", "dev", "test"):
         write_pipeline_cache(
@@ -489,9 +487,6 @@ def _materialize_output_path(path: Path) -> None:
 
 
 def _should_smoke_train(repo_root: Path, config: Path | None) -> bool:
-    dataset = repo_root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl"
-    if not dataset.exists():
-        return True
     if config is not None and config.name == "ms2-run-config.example.json":
         return True
     return False
