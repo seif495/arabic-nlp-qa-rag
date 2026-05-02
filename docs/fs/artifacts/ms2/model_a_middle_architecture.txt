@@ -1,0 +1,17 @@
+Model A middle stack (ADR §2.7-§2.10)
+
+Alignment:
+b1_pooled (B,192) -> tile along context -> (B,L_c,192)
+b2_seq (B,L_c,192) -> unchanged
+b3_seq (B,L_enc,192) -> per-example gather from offset question_length + 2 for L_c -> (B,L_c,192)
+
+Gated merge:
+Each aligned branch -> Dense(192). Concatenate -> Dense(192, GELU) -> Dense(3)
+-> softmax over branch identity -> weighted sum of branch projections -> Dropout(0.3) -> LayerNorm.
+
+Refinement:
+fused (B,L_c,192) -> BiGRU(96, return_state=True) -> encoder_output (B,L_c,192), encoder_summary (B,192).
+
+FiLM:
+encoder_summary -> Dense(128, GELU) -> Dense(512) -> gamma,beta (B,256 each).
+Final FiLM dense bias initializes gamma to 1 and beta to 0; final kernel stddev is 1e-3.
