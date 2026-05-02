@@ -24,6 +24,7 @@ class OptimizerBundle:
     optimizer: Any
     decay_var_filter: Callable[[str], bool]
     decay_variables: tuple[str, ...]
+    excluded_decay_variables: tuple[str, ...]
     teacher_forcing_ratio: float
     gradient_clip_norm: float
     applies_selective_weight_decay: bool
@@ -68,16 +69,37 @@ def build_adamw(
         optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
     decay_variables: tuple[str, ...] = ()
+    excluded_decay_variables: tuple[str, ...] = ()
+    applies_selective_weight_decay = False
     if tracked_variables is not None:
-        decay_variables = tuple(
-            variable.name for variable in tracked_variables if var_filter(variable.name)
+        tracked = tuple(tracked_variables)
+        decay_variables = tuple(variable.name for variable in tracked if var_filter(variable.name))
+        excluded_decay_variables = tuple(
+            variable.name for variable in tracked if not var_filter(variable.name)
         )
+        inner_optimizer = getattr(
+            optimizer,
+            "inner_optimizer",
+            getattr(optimizer, "inner", optimizer),
+        )
+        exclude_callable = getattr(inner_optimizer, "exclude_from_weight_decay", None)
+        if callable(exclude_callable):
+            excluded_names = [name.split(":", 1)[0] for name in excluded_decay_variables]
+            try:
+                exclude_callable(var_names=excluded_names)
+            except TypeError:
+                excluded_vars = [
+                    variable for variable in tracked if not var_filter(variable.name)
+                ]
+                exclude_callable(var_list=excluded_vars)
+            applies_selective_weight_decay = True
 
     return OptimizerBundle(
         optimizer=optimizer,
         decay_var_filter=var_filter,
         decay_variables=decay_variables,
+        excluded_decay_variables=excluded_decay_variables,
         teacher_forcing_ratio=1.0,
         gradient_clip_norm=gradient_clip_norm,
-        applies_selective_weight_decay=False,
+        applies_selective_weight_decay=applies_selective_weight_decay,
     )

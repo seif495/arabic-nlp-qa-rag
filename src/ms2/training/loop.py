@@ -114,9 +114,16 @@ def train_one_run(
         ),
     )
     summary_payload = run_summary.to_dict()
+    optimizer_bundle = getattr(model, "optimizer_bundle", None)
+    selective_decay_enforced = bool(
+        getattr(optimizer_bundle, "applies_selective_weight_decay", False)
+    )
     summary_payload["optimizer_contract"] = {
-        "selective_weight_decay_enforced": False,
-        "note": "decay_var_filter metadata exists but selective application is pending",
+        "selective_weight_decay_enforced": selective_decay_enforced,
+        "decay_variables": list(getattr(optimizer_bundle, "decay_variables", ())),
+        "excluded_decay_variables": list(
+            getattr(optimizer_bundle, "excluded_decay_variables", ())
+        ),
     }
     if not callable(evaluate_test):
         summary_payload["test_metrics_fallback"] = True

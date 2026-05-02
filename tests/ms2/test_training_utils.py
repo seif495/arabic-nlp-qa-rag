@@ -18,6 +18,10 @@ def test_build_adamw_applies_loss_scale_and_decay_filter(
     class FakeAdamW:
         def __init__(self, **kwargs: object) -> None:
             self.kwargs = kwargs
+            self.excluded_var_names: list[str] = []
+
+        def exclude_from_weight_decay(self, var_names: list[str]) -> None:
+            self.excluded_var_names = list(var_names)
 
     class FakeLossScaleOptimizer:
         def __init__(self, optimizer: object) -> None:
@@ -31,15 +35,22 @@ def test_build_adamw_applies_loss_scale_and_decay_filter(
     )
     monkeypatch.setitem(__import__("sys").modules, "tensorflow", fake_tf)
 
-    tracked = [types.SimpleNamespace(name="encoder/kernel:0"), types.SimpleNamespace(name="decoder/bias:0")]
+    tracked = [
+        types.SimpleNamespace(name="encoder/kernel:0"),
+        types.SimpleNamespace(name="decoder/bias:0"),
+        types.SimpleNamespace(name="shared/embedding:0"),
+    ]
     bundle = build_adamw(learning_rate=3e-4, tracked_variables=tracked)
 
     assert isinstance(bundle.optimizer, FakeLossScaleOptimizer)
     assert bundle.optimizer.inner.kwargs["weight_decay"] == 0.01
     assert bundle.optimizer.inner.kwargs["global_clipnorm"] == 1.0
     assert bundle.decay_variables == ("encoder/kernel:0",)
+    assert bundle.excluded_decay_variables == ("decoder/bias:0", "shared/embedding:0")
+    assert bundle.optimizer.inner.excluded_var_names == ["decoder/bias", "shared/embedding"]
     assert bundle.teacher_forcing_ratio == 1.0
     assert bundle.gradient_clip_norm == 1.0
+    assert bundle.applies_selective_weight_decay is True
 
 
 def test_schedules_subclass_learning_rate_schedule(monkeypatch: pytest.MonkeyPatch) -> None:
