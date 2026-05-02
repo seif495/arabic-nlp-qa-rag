@@ -4,29 +4,20 @@ import math
 import types
 from typing import Any
 
-try:
-    import tensorflow as tf  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover
-    tf = None  # type: ignore[assignment]
-
-
-if tf is not None:
-    _ScheduleBase = tf.keras.optimizers.schedules.LearningRateSchedule
-else:  # pragma: no cover
-
-    class _ScheduleBase:
-        pass
-
+def _get_schedule_base() -> type:
+    try:
+        import tensorflow as tf  # type: ignore[import-not-found]
+        return tf.keras.optimizers.schedules.LearningRateSchedule
+    except ImportError:  # pragma: no cover
+        class _ScheduleBase:
+            pass
+        return _ScheduleBase
 
 def _supports_tensor_ops() -> bool:
-    return (
-        tf is not None
-        and isinstance(tf, types.ModuleType)
-        and tf.__name__ == "tensorflow"
-    )
+    import sys
+    return "tensorflow" in sys.modules
 
-
-class CosineWithWarmup(_ScheduleBase):
+class CosineWithWarmup(_get_schedule_base()):
     def __init__(
         self,
         total_steps: int,
@@ -58,6 +49,7 @@ class CosineWithWarmup(_ScheduleBase):
             cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
             return self.min_lr + (self.peak_lr - self.min_lr) * cosine
 
+        import tensorflow as tf
         step_tensor = tf.cast(step, tf.float32)
         warmup_steps = tf.cast(self.warmup_steps, tf.float32)
         total_steps = tf.cast(self.total_steps, tf.float32)
@@ -83,7 +75,7 @@ class CosineWithWarmup(_ScheduleBase):
         }
 
 
-class Noam(_ScheduleBase):
+class Noam(_get_schedule_base()):
     def __init__(self, d_model: int, warmup_steps: int = 1000) -> None:
         if d_model <= 0:
             raise ValueError("d_model must be positive")
@@ -98,6 +90,7 @@ class Noam(_ScheduleBase):
             scale = self.d_model**-0.5
             return scale * min(step_value**-0.5, step_value * self.warmup_steps**-1.5)
 
+        import tensorflow as tf
         step_tensor = tf.maximum(tf.cast(step, tf.float32), 1.0)
         d_model = tf.cast(self.d_model, tf.float32)
         warmup = tf.cast(self.warmup_steps, tf.float32)
