@@ -6,6 +6,9 @@ todo.md
 plan-to-solve-the-issues.md
 experiments/
 
+### my stuff ###
+experiments
+
 # C extensions
 *.so
 

@@ -1,0 +1,42 @@
+---
+paths:
+  output_dir: data/interim/ms2
+  train_records: train_records.json
+  test_records: test_records.json
+  vocab: vocab.json
+  stats: preprocessing_stats.json
+
+normalization:
+  lowercase_english: true
+  normalize_alef: true
+  normalize_ya: true
+  normalize_ta_marbuta: true
+  remove_tatweel: true
+  normalize_whitespace: true
+  space_punctuation: true
+
+tokenization:
+  save_offsets: true
+
+vocabulary:
+  min_frequency: 1
+  build_from_split: train
+
+features:
+  save_segment_ids: true
+  save_language_ids: true
+  save_position_ids: true
+
+objectives:
+  span_enabled: true
+  generation_enabled: true
+  alignment_method: token_f1
+  weak_alignment_threshold: 0.5
+
+language_ids:
+  other: 0
+  arabic: 1
+  english: 2
+  special: 3
+  punctuation: 4
+  number: 5
