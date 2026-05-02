@@ -1,0 +1,17 @@
+Model A branch stack (ADR §2.3-§2.6)
+
+Shared BPE embedding E(4096, 128)
+
+Branch 1:
+question_ids (B,L_q) -> E -> Dropout(0.2) -> BiLSTM(96) -> (B,L_q,192)
+-> masked structured pooling d_p=64 -> b1_pooled (B,192)
+
+Branch 2:
+context_ids (B,L_c) -> E -> Dropout(0.2) -> BiGRU(96) -> Dropout(0.3)
+-> BiGRU(96) -> b2_seq (B,L_c,192)
+
+Branch 3:
+joint_ids (B,L_enc) -> E -> token embedding (B,L_enc,128)
+char_ids (B,L_enc,16) -> CharEmbedding(32) -> Conv1D kernels {2,3,4}
+-> GlobalMaxPool -> char features (B,L_enc,64)
+concat -> (B,L_enc,192) -> Dropout(0.2) -> BiLSTM(96) -> b3_seq (B,L_enc,192)
