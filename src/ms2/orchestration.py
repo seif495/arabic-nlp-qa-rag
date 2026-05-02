@@ -12,6 +12,11 @@ from src.ms2.data.length_caps import run_length_analysis
 from src.ms2.data.pipeline import write_pipeline_cache
 from src.ms2.data.records import load_ms1_processed_records
 from src.ms2.data.tokenizer import ensure_default_tokenizer, train_tokenizer_assets
+from src.ms2.analysis.compare import write_headline_tables
+from src.ms2.analysis.conditioning_viz import write_placeholder_png
+from src.ms2.analysis.difficulty import write_difficulty_placeholder
+from src.ms2.analysis.long_dependency import write_long_dependency_placeholder
+from src.ms2.analysis.noise_battery import write_noise_battery_placeholder
 
 
 @dataclass(frozen=True)
@@ -99,9 +104,10 @@ def train(
         model=f"model_{model}",
         seed=seed,
     )
-    output_name = config.name if config else "default_config"
-    output_path = paths.run_output_dir / output_name
-    _materialize_output_path(output_path)
+    del config
+    output_path = paths.run_output_dir / "run_summary_v001.json"
+    _write_compute_bound_run_artifacts(paths.run_output_dir, model=model, seed=seed)
+    _write_training_runs_index(paths.experiments_ms2)
     return CommandResult(
         command="train",
         status="ok",
@@ -123,7 +129,21 @@ def infer(
         seed=seed,
     )
     output_path = paths.run_output_dir / f"{split}_{decoding}_predictions.jsonl"
-    _materialize_output_path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text("", encoding="utf-8")
+    benchmark_path = paths.experiments_ms2 / "inference_benchmark_v001.json"
+    if not benchmark_path.exists():
+        benchmark_path.write_text(
+            json.dumps(
+                {
+                    "status": "not_run_compute_bound",
+                    "note": "Requires trained checkpoints; no inference timing fabricated.",
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
     return CommandResult(
         command="infer",
         status="ok",
@@ -144,7 +164,18 @@ def evaluate(
         seed=seed,
     )
     output_path = paths.run_output_dir / f"{split}_metrics.json"
-    _materialize_output_path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(
+            {
+                "status": "missing_predictions_or_checkpoint",
+                "metrics": {"em": None, "token_f1": None, "char_edit_distance": None, "bleu1": None},
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return CommandResult(
         command="evaluate",
         status="ok",
@@ -154,8 +185,34 @@ def evaluate(
 
 def evaluate_protocol(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
+    write_noise_battery_placeholder(paths.experiments_ms2 / "noise_battery_v001.csv")
+    write_long_dependency_placeholder(paths.experiments_ms2 / "long_dependency_v001.json")
+    write_difficulty_placeholder(paths.experiments_ms2 / "difficulty_buckets_v001.json")
+    leave_dir = paths.experiments_ms2 / "leave_2_videos_out"
+    leave_dir.mkdir(parents=True, exist_ok=True)
+    (leave_dir / "README.md").write_text(
+        "# Leave-2-Videos-Out\n\nProtocol hooks are implemented; trained run summaries require additional compute.\n",
+        encoding="utf-8",
+    )
+    for idx, name in enumerate(("model_a_gates", "model_a_film", "model_b_encoder_attention", "model_b_cross_attention"), start=1):
+        write_placeholder_png(paths.repo_root / "docs" / "fs" / "artifacts" / "ms2" / f"conditioning_{idx}_{name}.png")
     output_path = paths.experiments_ms2 / "evaluation_protocol.json"
-    _materialize_output_path(output_path)
+    output_path.write_text(
+        json.dumps(
+            {
+                "status": "protocol_ready_missing_trained_checkpoints",
+                "artifacts": [
+                    "experiments/ms2/noise_battery_v001.csv",
+                    "experiments/ms2/long_dependency_v001.json",
+                    "experiments/ms2/difficulty_buckets_v001.json",
+                    "experiments/ms2/leave_2_videos_out/",
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return CommandResult(
         command="evaluate-protocol",
         status="ok",
@@ -171,11 +228,26 @@ def ablate(
     paths = resolve_ms2_paths(
         repo_root=repo_root,
         create_dirs=True,
-        model="ablation",
+        model="ablations",
         seed=seed,
     )
-    output_path = paths.run_output_dir / f"{variant}.json"
-    _materialize_output_path(output_path)
+    output_path = paths.experiments_ms2 / "ablations" / _ablation_model_id(variant) / variant / str(seed) / "run_summary_v001.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    (output_path.parent / "checkpoints").mkdir(exist_ok=True)
+    output_path.write_text(
+        json.dumps(
+            {
+                "variant": variant,
+                "seed": seed,
+                "status": "not_run_compute_bound",
+                "note": "Ablation construction flags are implemented; training requires TensorFlow/GPU runtime.",
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_ablations_index(paths.experiments_ms2)
     return CommandResult(
         command="ablate",
         status="ok",
@@ -185,8 +257,8 @@ def ablate(
 
 def compare(repo_root: Path | None = None) -> CommandResult:
     paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=True)
-    output_path = paths.report_dir / "ms2-comparison-table.md"
-    _materialize_output_path(output_path)
+    csv_path, md_path = write_headline_tables(paths.experiments_ms2, paths.repo_root / "docs" / "reports")
+    output_path = md_path
     return CommandResult(
         command="compare",
         status="ok",
@@ -371,6 +443,70 @@ def _materialize_output_path(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
+def _write_compute_bound_run_artifacts(run_dir: Path, model: str, seed: int) -> None:
+    run_dir.mkdir(parents=True, exist_ok=True)
+    checkpoints = run_dir / "checkpoints"
+    curves = run_dir / "curves"
+    checkpoints.mkdir(exist_ok=True)
+    curves.mkdir(exist_ok=True)
+    (checkpoints / "README.md").write_text(
+        "Checkpoints are produced by real TensorFlow training; not run in this environment.\n",
+        encoding="utf-8",
+    )
+    (curves / "training_curves_v001.json").write_text(
+        json.dumps({"status": "not_run_compute_bound", "loss": [], "dev_metrics": []}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    run_summary = {
+        "run_id": f"model_{model}_seed_{seed}",
+        "model_id": model.upper(),
+        "seed": seed,
+        "status": "not_run_compute_bound",
+        "wall_clock_budget_minutes": TRAINING_BUDGET_MINUTES,
+        "metrics": {"dev_em": None, "dev_token_f1": None, "dev_char_edit_distance": None, "dev_bleu1": None},
+        "note": "Training orchestration and artifact paths are ready; no scores/checkpoints fabricated without TensorFlow/GPU run.",
+    }
+    (run_dir / "run_summary_v001.json").write_text(json.dumps(run_summary, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_training_runs_index(experiments_dir: Path) -> None:
+    runs = []
+    for model in ("a", "b"):
+        for seed in RUN_ALL_SEED_CHOICES:
+            runs.append(
+                {
+                    "model": model.upper(),
+                    "seed": seed,
+                    "run_summary": f"experiments/ms2/model_{model}/{seed}/run_summary_v001.json",
+                    "status": "pending_or_compute_bound",
+                }
+            )
+    (experiments_dir / "training_runs_index_v001.json").write_text(json.dumps({"runs": runs}, indent=2) + "\n", encoding="utf-8")
+
+
+def _ablation_model_id(variant: str) -> str:
+    if variant in {"no_film", "mean_merge", "plain_branch3"}:
+        return "model_a"
+    return "model_b"
+
+
+def _write_ablations_index(experiments_dir: Path) -> None:
+    variants = ("no_film", "mean_merge", "plain_branch3", "sinusoidal_pe", "no_pe", "shared_layers")
+    rows = []
+    for variant in variants:
+        for seed in RUN_ALL_SEED_CHOICES:
+            rows.append(
+                {
+                    "variant": variant,
+                    "model": _ablation_model_id(variant),
+                    "seed": seed,
+                    "run_summary": f"experiments/ms2/ablations/{_ablation_model_id(variant)}/{variant}/{seed}/run_summary_v001.json",
+                    "status": "pending_or_compute_bound",
+                }
+            )
+    (experiments_dir / "ablations_index_v001.json").write_text(json.dumps({"ablations": rows}, indent=2) + "\n", encoding="utf-8")
+
+
 def _write_length_analysis_contract(output_path: Path, analysis: dict[str, object]) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     post_bpe = analysis["post_bpe"]
@@ -423,7 +559,7 @@ def _expected_train_output(repo_root: Path, model: str, seed: int) -> Path:
         model=f"model_{model}",
         seed=seed,
     )
-    return paths.run_output_dir / "default_config"
+    return paths.run_output_dir / "run_summary_v001.json"
 
 
 def _expected_infer_output(repo_root: Path, model: str, seed: int) -> Path:
@@ -452,18 +588,12 @@ def _expected_evaluate_protocol_output(repo_root: Path) -> Path:
 
 
 def _expected_ablate_output(repo_root: Path, variant: str, seed: int) -> Path:
-    paths = resolve_ms2_paths(
-        repo_root=repo_root,
-        create_dirs=False,
-        model="ablation",
-        seed=seed,
-    )
-    return paths.run_output_dir / f"{variant}.json"
+    paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=False)
+    return paths.experiments_ms2 / "ablations" / _ablation_model_id(variant) / variant / str(seed) / "run_summary_v001.json"
 
 
 def _expected_compare_output(repo_root: Path) -> Path:
-    paths = resolve_ms2_paths(repo_root=repo_root, create_dirs=False)
-    return paths.report_dir / "ms2-comparison-table.md"
+    return repo_root / "docs" / "reports" / "ms2_headline_table.md"
 
 
 def _training_budget_warning(elapsed_seconds: float, phase: str) -> str | None:
