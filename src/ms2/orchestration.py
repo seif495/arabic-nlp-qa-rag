@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
+from typing import Any
 
 from src.common.paths import MS2Paths, make_ms2_output_filename, resolve_ms2_paths
 from src.ms2.data.length_caps import run_length_analysis
@@ -142,20 +143,93 @@ def infer(
     )
     output_path = paths.run_output_dir / f"{split}_{decoding}_predictions.jsonl"
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text("", encoding="utf-8")
-    benchmark_path = paths.experiments_ms2 / "inference_benchmark_v001.json"
-    if not benchmark_path.exists():
-        benchmark_path.write_text(
-            json.dumps(
-                {
-                    "status": "not_run_compute_bound",
-                    "note": "Requires trained checkpoints; no inference timing fabricated.",
-                },
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
+
+    ckpt_dir = paths.run_output_dir / "checkpoints"
+    best_ckpt = ckpt_dir / "best.weights.h5"
+    last_ckpt = ckpt_dir / "last.weights.h5"
+    if best_ckpt.exists():
+        ckpt_path = best_ckpt
+    elif last_ckpt.exists():
+        ckpt_path = last_ckpt
+    else:
+        output_path.write_text("", encoding="utf-8")
+        return CommandResult(
+            command="infer",
+            status="no_checkpoint",
+            output_path=str(output_path),
         )
+
+    from src.ms2.training.baseline import _build_model
+    from src.ms2.data.tokenizer import ensure_default_tokenizer
+    from src.ms2.inference.adapter import make_decodable_adapter
+    from src.ms2.inference.greedy import greedy_decode
+    from src.ms2.inference.beam import beam_decode
+
+    split_paths = resolve_ms2_paths(
+        repo_root=repo_root, create_dirs=False, split=f"{split}_{model}"
+    )
+    cache_path = split_paths.tfrecord_shard_dir / "examples.jsonl"
+    examples = [
+        json.loads(line)
+        for line in cache_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    tf_model = _build_model(model)
+    if examples:
+        _warm_up_model(tf_model, model, examples[0])
+    tf_model.load_weights(str(ckpt_path))
+    tokenizer = ensure_default_tokenizer(repo_root=paths.repo_root)
+
+    ref_lookup = {
+        r.sample_id: r.answer_text
+        for r in load_ms2_cleaned_input_records(paths)
+    }
+
+    decode_fn = greedy_decode if decoding == "greedy" else beam_decode
+    adapter = make_decodable_adapter(tf_model, model)
+
+    started = perf_counter()
+    rows = []
+    for ex in examples:
+        encoder_inputs = _build_encoder_inputs(ex, model)
+        result = decode_fn(adapter, encoder_inputs, max_length=64)
+        pred_text = tokenizer.decode(result.token_ids)
+        rows.append(
+            {
+                "sample_id": ex.get("sample_id", ""),
+                "qa_id": ex.get("qa_id", ""),
+                "transcript_id": ex.get("transcript_id", ""),
+                "prediction_text": pred_text,
+                "reference_text": ref_lookup.get(ex.get("sample_id", ""), ""),
+                "log_probability": result.log_probability,
+                "normalized_score": result.normalized_score,
+            }
+        )
+    elapsed = perf_counter() - started
+    mean_latency_ms = (elapsed / max(len(rows), 1)) * 1000
+
+    output_path.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    benchmark_path = paths.experiments_ms2 / "inference_benchmark_v001.json"
+    benchmark_path.write_text(
+        json.dumps(
+            {
+                "mean_latency_ms_per_example": mean_latency_ms,
+                "num_examples": len(rows),
+                "decoding": decoding,
+                "split": split,
+                "model": model,
+                "seed": seed,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return CommandResult(
         command="infer",
         status="ok",
@@ -475,6 +549,43 @@ def _build_run_all_stages(repo_root: Path | None) -> list[_RunAllStage]:
     )
 
     return stages
+
+
+def _warm_up_model(model: Any, model_token: str, ex: dict) -> None:
+    import tensorflow as tf
+
+    if model_token == "a":
+        model(
+            (
+                tf.constant([ex["question_ids"]], dtype=tf.int32),
+                tf.constant([ex["context_ids"]], dtype=tf.int32),
+                tf.constant([ex["encoder_input_ids"]], dtype=tf.int32),
+                tf.constant([ex["char_matrix"]], dtype=tf.int32),
+                tf.constant([ex["decoder_input_ids"]], dtype=tf.int32),
+            ),
+            training=False,
+        )
+    else:
+        model(
+            (
+                tf.constant([ex["encoder_input_ids"]], dtype=tf.int32),
+                tf.constant([ex["decoder_input_ids"]], dtype=tf.int32),
+            ),
+            training=False,
+        )
+
+
+def _build_encoder_inputs(ex: dict, model_token: str) -> dict:
+    import tensorflow as tf
+
+    inputs = {
+        "encoder_input_ids": tf.constant([ex["encoder_input_ids"]], dtype=tf.int32),
+    }
+    if model_token == "a":
+        inputs["question_ids"] = tf.constant([ex["question_ids"]], dtype=tf.int32)
+        inputs["context_ids"] = tf.constant([ex["context_ids"]], dtype=tf.int32)
+        inputs["char_matrix"] = tf.constant([ex["char_matrix"]], dtype=tf.int32)
+    return inputs
 
 
 def _materialize_output_path(path: Path) -> None:
