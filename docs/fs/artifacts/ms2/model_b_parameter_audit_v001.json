@@ -1,0 +1,8 @@
+{
+  "model": "B",
+  "status": "code_path_ready_requires_tensorflow_runtime",
+  "budget_min": 3400000,
+  "budget_max": 4200000,
+  "adr_target": 3800000,
+  "note": "Use src.ms2.models.transformer.model_b.write_parameter_audit after TensorFlow is installed to materialize the exact built-model count. TensorFlow wheel extraction failed in this environment due no space left on device."
+}
