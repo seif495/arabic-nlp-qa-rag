@@ -9,10 +9,16 @@ from src.ms2.data.loader import load
 from src.ms2.data.normalizer import normalize_arabic_text
 from src.ms2.data.tokenizer import tokenize_with_offsets
 from src.ms2.data.vocabulary import BOS, C, EOS, PAD, Q, SEP, SPECIAL_TOKEN_TO_ID, UNK
-from src.ms2.util import DataSteps, FlattenedExternalData, data_path
+from src.ms2.util import (
+    DataSteps,
+    FlattenedExternalData,
+    data_path,
+    congif_path,
+    PipelineSteps,
+)
 
 ### ~~~ STATE MANAGEMENT ~~~ ###
-DEFAULT_CONFIG_PATH: Path = Path("config/ms2/preprocessing.yml")
+DEFAULT_CONFIG_PATH: Path = congif_path[PipelineSteps.data_preprocessing]
 
 ARABIC_PATTERN = re.compile(
     r"^[\u0621-\u063A\u0641-\u064A\u064B-\u065F\u0670\u0671-\u06D3\u06FA-\u06FC]+$"
