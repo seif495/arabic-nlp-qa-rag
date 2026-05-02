@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import random
+import hashlib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
@@ -157,9 +158,11 @@ def write_pipeline_cache(
         repo_root=repo_root, create_dirs=True, split=f"{split}_{target_model}"
     )
     cache_path = paths.tfrecord_shard_dir / "examples.jsonl"
-    if cache_path.exists():
+    fallback_only_train = _uses_fallback_train_dev_split(records)
+    force_rebuild = fallback_only_train and split in ("train", "dev")
+    if _cache_has_rows(cache_path) and not force_rebuild:
         return cache_path
-    selected = [record for record in records if record.split == split]
+    selected = _select_split_records(records, split)
     rng = random.Random(13)
     with cache_path.open("w", encoding="utf-8") as handle:
         for record in selected:
@@ -172,6 +175,41 @@ def write_pipeline_cache(
             )
             handle.write(json.dumps(example.to_dict(), ensure_ascii=False) + "\n")
     return cache_path
+
+
+def _cache_has_rows(path: Path) -> bool:
+    if not path.exists() or path.stat().st_size == 0:
+        return False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            return True
+    return False
+
+
+def _select_split_records(records: list[MS2DatasetRecord], split: str) -> list[MS2DatasetRecord]:
+    if split in ("train", "dev") and _uses_fallback_train_dev_split(records):
+        train_records = [record for record in records if record.split == "train"]
+        dev_ids = {
+            record.sample_id
+            for record in train_records
+            if _is_dev_fallback_sample(record.sample_id)
+        }
+        if split == "dev":
+            return [record for record in train_records if record.sample_id in dev_ids]
+        return [record for record in train_records if record.sample_id not in dev_ids]
+    selected = [record for record in records if record.split == split]
+    if selected:
+        return selected
+    return selected
+
+
+def _is_dev_fallback_sample(sample_id: str) -> bool:
+    digest = hashlib.sha1(sample_id.encode("utf-8")).digest()
+    return digest[0] < 26
+
+
+def _uses_fallback_train_dev_split(records: list[MS2DatasetRecord]) -> bool:
+    return bool(records) and all(record.split == "train" for record in records)
 
 
 def _encoder_pieces(
