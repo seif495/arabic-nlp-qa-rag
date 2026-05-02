@@ -1,16 +1,20 @@
-# MS2 Headline Table
+# MS2 Headline Comparison
 
-| Metric | Model A | Model B |
-| --- | --- | --- |
-| Exact Match (random split) | — | — |
-| Token-F1 (random split) | — | — |
-| Char edit distance (random split) | — | — |
-| BLEU-1 (random split) | — | — |
-| Exact Match (leave-2-videos-out) | — | — |
-| Token-F1 (leave-2-videos-out) | — | — |
-| Parameter count | ~2.7M | ~3.8M |
-| Training wall-clock | target 75 min; not run locally | target 75 min; not run locally |
-| Inference time / example (greedy) | — | — |
-| Peak GPU memory (training) | — | — |
+Seeds averaged: 13, 42, 91 (only completed runs included).
 
-Cells marked `—` require trained checkpoints; no scores were fabricated.
+| Metric                           | Model A   | Model B   |
+| -------------------------------- | --------- | --------- |
+| Exact Match — test               | 0.000     | 0.000     |
+| Token-F1 — test                  | 0.006     | 0.002     |
+| Char edit distance — test        | 0.939     | 0.953     |
+| BLEU-1 — test                    | 0.004     | 0.001     |
+| Exact Match — dev                | 0.000     | 0.000     |
+| Token-F1 — dev                   | 0.000     | 0.000     |
+| Exact Match (leave-2-videos-out) | —         | —         |
+| Token-F1 (leave-2-videos-out)    | —         | —         |
+| Parameter count                  | 2,725,325 | 3,030,432 |
+| Training wall-clock (min)        | 10.9      | 7.0       |
+| Inference time / example (ms)    | 340.0     | 340.0     |
+| Peak GPU memory (MB)             | 0         | 0         |
+
+Cells marked `—` have no completed runs for either model.
