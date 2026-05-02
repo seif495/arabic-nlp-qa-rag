@@ -45,3 +45,13 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.15.5",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"notebooks/**/*.ipynb" = ["E402"]
+"tests/ms2/test_model_a_branches.py" = ["E402"]
+"tests/ms2/test_model_a_middle.py" = ["E402"]
+"tests/ms2/test_model_a_full.py" = ["E402"]
+"tests/ms2/test_rope.py" = ["E402"]
+"tests/ms2/test_transformer_attention.py" = ["E402"]
+"tests/ms2/test_transformer_encoder.py" = ["E402"]
+"tests/ms2/test_model_b_full.py" = ["E402"]

@@ -202,10 +202,10 @@ def evaluate_protocol(repo_root: Path | None = None) -> CommandResult:
             {
                 "status": "protocol_ready_missing_trained_checkpoints",
                 "artifacts": [
-                    "experiments/ms2/noise_battery_v001.csv",
-                    "experiments/ms2/long_dependency_v001.json",
-                    "experiments/ms2/difficulty_buckets_v001.json",
-                    "experiments/ms2/leave_2_videos_out/",
+                    _ms2_experiment_relpath("noise_battery_v001.csv"),
+                    _ms2_experiment_relpath("long_dependency_v001.json"),
+                    _ms2_experiment_relpath("difficulty_buckets_v001.json"),
+                    _ms2_experiment_relpath("leave_2_videos_out/"),
                 ],
             },
             indent=2,
@@ -477,7 +477,7 @@ def _write_training_runs_index(experiments_dir: Path) -> None:
                 {
                     "model": model.upper(),
                     "seed": seed,
-                    "run_summary": f"experiments/ms2/model_{model}/{seed}/run_summary_v001.json",
+                    "run_summary": _ms2_experiment_relpath(f"model_{model}/{seed}/run_summary_v001.json"),
                     "status": "pending_or_compute_bound",
                 }
             )
@@ -490,6 +490,10 @@ def _ablation_model_id(variant: str) -> str:
     return "model_b"
 
 
+def _ms2_experiment_relpath(suffix: str) -> str:
+    return "/".join(("experiments", "ms2", suffix))
+
+
 def _write_ablations_index(experiments_dir: Path) -> None:
     variants = ("no_film", "mean_merge", "plain_branch3", "sinusoidal_pe", "no_pe", "shared_layers")
     rows = []
@@ -500,7 +504,7 @@ def _write_ablations_index(experiments_dir: Path) -> None:
                     "variant": variant,
                     "model": _ablation_model_id(variant),
                     "seed": seed,
-                    "run_summary": f"experiments/ms2/ablations/{_ablation_model_id(variant)}/{variant}/{seed}/run_summary_v001.json",
+                    "run_summary": _ms2_experiment_relpath(f"ablations/{_ablation_model_id(variant)}/{variant}/{seed}/run_summary_v001.json"),
                     "status": "pending_or_compute_bound",
                 }
             )
