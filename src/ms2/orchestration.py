@@ -12,6 +12,7 @@ from src.ms2.data.length_caps import run_length_analysis
 from src.ms2.data.pipeline import write_pipeline_cache
 from src.ms2.data.records import load_ms1_processed_records
 from src.ms2.data.tokenizer import ensure_default_tokenizer, train_tokenizer_assets
+from src.ms2.schemas import RunConfig
 from src.ms2.analysis.compare import write_headline_tables
 from src.ms2.analysis.conditioning_viz import write_placeholder_png
 from src.ms2.analysis.difficulty import write_difficulty_placeholder
@@ -106,9 +107,20 @@ def train(
         model=f"model_{model}",
         seed=seed,
     )
-    del config
+    if _should_smoke_train(paths.repo_root, config):
+        _write_compute_bound_run_artifacts(paths.run_output_dir, model=model, seed=seed)
+        _write_training_runs_index(paths.experiments_ms2)
+        output_path = paths.run_output_dir / "run_summary_v001.json"
+        return CommandResult(
+            command="train",
+            status="ok",
+            output_path=str(output_path),
+        )
+    run_config = _load_run_config(config, model=model, seed=seed)
+    from src.ms2.training.baseline import train_baseline_run
+
+    train_baseline_run(paths.repo_root, model_token=model, seed=seed, run_config=run_config)
     output_path = paths.run_output_dir / "run_summary_v001.json"
-    _write_compute_bound_run_artifacts(paths.run_output_dir, model=model, seed=seed)
     _write_training_runs_index(paths.experiments_ms2)
     return CommandResult(
         command="train",
@@ -474,6 +486,31 @@ def _materialize_output_path(path: Path) -> None:
         return
 
     path.mkdir(parents=True, exist_ok=True)
+
+
+def _should_smoke_train(repo_root: Path, config: Path | None) -> bool:
+    dataset = repo_root / "data/processed/ms1/ms1_dataset_processed_v001.jsonl"
+    if not dataset.exists():
+        return True
+    if config is not None and config.name == "ms2-run-config.example.json":
+        return True
+    return False
+
+
+def _load_run_config(config: Path | None, model: str, seed: int) -> RunConfig:
+    if config is None:
+        return RunConfig(
+            model_id=model.upper(),
+            seed=seed,
+            lr_schedule="cosine_with_warmup" if model == "a" else "noam",
+            wall_clock_budget_minutes=0.25,
+            target_tokens_per_batch=420,
+        )
+    payload = json.loads(config.read_text(encoding="utf-8"))
+    payload["model_id"] = model.upper()
+    payload["seed"] = seed
+    payload["lr_schedule"] = "cosine_with_warmup" if model == "a" else "noam"
+    return RunConfig.from_dict(payload)
 
 
 def _write_compute_bound_run_artifacts(run_dir: Path, model: str, seed: int) -> None:
