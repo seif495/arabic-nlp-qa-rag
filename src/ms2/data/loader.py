@@ -79,9 +79,9 @@ def train_test_split(
     test_paths: list[Path] = list(map(Path, test_paths_set))
 
     ### assert same length of train and test sets ###
-    assert len(train_paths) == len(test_paths), (
-        "Train and test sets must have the same number of files."
-    )
+    assert len(train_paths) == len(
+        test_paths
+    ), "Train and test sets must have the same number of files."
     return train_paths, test_paths
 
 
@@ -167,9 +167,9 @@ def load_data(paths: list[Path]) -> list[FlattenedExternalData]:
             qas: list = paragraph.get("qas", [])
 
             ## 4.2 delist the list of one item ##
-            assert len(qas) == 1, (
-                "Each paragraph should have exactly one question-answer pair."
-            )
+            assert (
+                len(qas) == 1
+            ), "Each paragraph should have exactly one question-answer pair."
             first_qa: dict = qas[0]
 
             ## 4.3 get the question and answer ##
@@ -196,11 +196,11 @@ def load_data(paths: list[Path]) -> list[FlattenedExternalData]:
         return all_flattened_objects
 
     ### flatten the json structure ###
-    flattened_objects: dict[
-        str, list[FlattenedExternalData]
-    ] = {  # use the first object to get the title
-        objs[0].title: objs for objs in list(map(_flatten_json, raw_objects))
-    }
+    flattened_objects: dict[str, list[FlattenedExternalData]] = (
+        {  # use the first object to get the title
+            objs[0].title: objs for objs in list(map(_flatten_json, raw_objects))
+        }
+    )
 
     ### insure all the objects have the same title with a file ###
     flag: bool = all(
@@ -208,9 +208,9 @@ def load_data(paths: list[Path]) -> list[FlattenedExternalData]:
         for title, list_of_objs in flattened_objects.items()
         for obj in list_of_objs
     )
-    assert flag, (
-        "All flattened objects must have the same title as their corresponding file."
-    )
+    assert (
+        flag
+    ), "All flattened objects must have the same title as their corresponding file."
 
     ### unpack the flattened objects into a single list ###
     objects: list[FlattenedExternalData] = [
