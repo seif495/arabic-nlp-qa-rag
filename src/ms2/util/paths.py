@@ -14,7 +14,7 @@ class DataSteps(Enum):
     artifacts = "artifacts"
 
 
-class PipelineSteps(Enum):
+class PipelineStep(Enum):
     data_preprocessing = "data_preprocessing"
     model_training = "model_training"
     model_evaluation = "model_evaluation"
@@ -27,9 +27,9 @@ data_path: dict[DataSteps, Path] = {
     DataSteps.artifacts: Path("data/artifacts/ms2"),
 }
 
-congif_path: dict[PipelineSteps, Path] = {
-    PipelineSteps.data_preprocessing: Path("configs/ms2/preprocessing.yml")
+config_path: dict[PipelineStep, Path] = {
+    PipelineStep.data_preprocessing: Path("configs/ms2/preprocessing.yml")
 }
 
 
-__all__ = ["DataSteps", "data_path", "PipelineSteps", "congif_path"]
+__all__ = ["DataSteps", "data_path", "PipelineStep", "config_path"]

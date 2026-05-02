@@ -12,13 +12,14 @@ from src.ms2.data.vocabulary import BOS, C, EOS, PAD, Q, SEP, SPECIAL_TOKEN_TO_I
 from src.ms2.util import (
     DataSteps,
     FlattenedExternalData,
+    PipelineStep,
     data_path,
-    congif_path,
-    PipelineSteps,
+    get_config_value,
+    load_pipeline_config,
 )
 
 ### ~~~ STATE MANAGEMENT ~~~ ###
-DEFAULT_CONFIG_PATH: Path = congif_path[PipelineSteps.data_preprocessing]
+DEFAULT_PIPELINE_STEP: PipelineStep = PipelineStep.data_preprocessing
 
 ARABIC_PATTERN = re.compile(
     r"^[\u0621-\u063A\u0641-\u064A\u064B-\u065F\u0670\u0671-\u06D3\u06FA-\u06FC]+$"
@@ -26,83 +27,6 @@ ARABIC_PATTERN = re.compile(
 ENGLISH_PATTERN = re.compile(r"^[A-Za-z]+$")
 NUMBER_PATTERN = re.compile(r"^\d+(?:\.\d+)?$")
 PUNCTUATION_PATTERN = re.compile(r"^[^\w\s]$")
-
-
-def parse_config_value(value: str) -> object:
-    """
-    This function parses a simple YAML scalar value.
-    Args:
-        value (str): The raw value from the config file.
-    Returns:
-        object: The parsed config value.
-    """
-    ### clean the value ###
-    cleaned_value: str = value.strip()
-
-    ### parse booleans ###
-    if cleaned_value == "true":
-        return True
-    if cleaned_value == "false":
-        return False
-
-    ### parse numbers ###
-    if cleaned_value.isdigit():
-        return int(cleaned_value)
-    try:
-        return float(cleaned_value)
-    except ValueError:
-        pass
-
-    ### parse strings ###
-    return cleaned_value.strip('"')
-
-
-def load_config(config_path: Path = DEFAULT_CONFIG_PATH) -> dict:
-    """
-    This function loads the preprocessing config from a simple YAML file.
-    Args:
-        config_path (Path, optional): The config path. Defaults to DEFAULT_CONFIG_PATH.
-    Returns:
-        dict: The loaded config dictionary.
-    """
-    ### init config objects ###
-    config: dict = {}
-    current_section: str = ""
-
-    ### parse the config file ###
-    for raw_line in config_path.read_text(encoding="utf-8").splitlines():
-        line: str = raw_line.split("#", maxsplit=1)[0].rstrip()
-        if not line:
-            continue
-
-        ### parse section names ###
-        if not raw_line.startswith(" "):
-            current_section = line.replace(":", "")
-            config[current_section] = {}
-            continue
-
-        ### parse section values ###
-        key, value = line.strip().split(":", maxsplit=1)
-        config[current_section][key] = parse_config_value(value)
-
-    return config
-
-
-def get_config_value(config: dict, section: str, key: str, default: object) -> object:
-    """
-    This function gets a config value with a default fallback.
-    Args:
-        config (dict): The loaded config dictionary.
-        section (str): The config section name.
-        key (str): The config key name.
-        default (object): The default value.
-    Returns:
-        object: The config value.
-    """
-    ### get config value ###
-    value: object = config.get(section, {}).get(key, default)
-
-    return value
 
 
 def normalize_field(text: str, config: dict) -> str:
@@ -654,16 +578,16 @@ def build_stats(
     return stats
 
 
-def preprocess(config_path: Path = DEFAULT_CONFIG_PATH) -> dict:
+def preprocess(step: PipelineStep = DEFAULT_PIPELINE_STEP) -> dict:
     """
     This function runs the full MS2 preprocessing pipeline.
     Args:
-        config_path (Path, optional): The preprocessing config path. Defaults to DEFAULT_CONFIG_PATH.
+        step (PipelineStep, optional): The pipeline step config key. Defaults to DEFAULT_PIPELINE_STEP.
     Returns:
         dict: The preprocessing run summary.
     """
     ### load config and data ###
-    config: dict = load_config(config_path)
+    config: dict = load_pipeline_config(step)
     train_data, test_data = load()
 
     ### build base records ###
