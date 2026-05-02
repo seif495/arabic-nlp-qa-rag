@@ -16,17 +16,24 @@ YA_NORMALIZATION: dict[str, str] = {
 }
 
 ARABIC_PUNCTUATION_NORMALIZATION: dict[str, str] = {
-    "،": ",",
-    "؛": ";",
-    "؟": "?",
+    "،": "،",
+    "؛": "؛",
+    "؟": "؟",
 }
 
 TATWEEL: str = "ـ"
 
 WHITESPACE_PATTERN = re.compile(r"\s+")
+PUNCTUATION_PATTERN = re.compile(r"([،؛؟.!?,;:])")
 
 
-def normalize_chars(text: str) -> str:
+def normalize_chars(
+    text: str,
+    normalize_alef: bool = True,
+    normalize_ya: bool = True,
+    normalize_ta_marbuta: bool = True,
+    remove_tatweel: bool = True,
+) -> str:
     """
     This function applies light Arabic character normalization.
     Args:
@@ -34,16 +41,26 @@ def normalize_chars(text: str) -> str:
     Returns:
         str: The text after normalizing Arabic characters.
     """
+    ### init normalized text ###
+    normalized_text: str = text
+
     ### remove tatweel ###
-    normalized_text: str = text.replace(TATWEEL, "")
+    if remove_tatweel:
+        normalized_text = normalized_text.replace(TATWEEL, "")
 
     ### normalize alef variants ###
-    for old_char, new_char in ALEF_NORMALIZATION.items():
-        normalized_text = normalized_text.replace(old_char, new_char)
+    if normalize_alef:
+        for old_char, new_char in ALEF_NORMALIZATION.items():
+            normalized_text = normalized_text.replace(old_char, new_char)
 
     ### normalize alef maqsura ###
-    for old_char, new_char in YA_NORMALIZATION.items():
-        normalized_text = normalized_text.replace(old_char, new_char)
+    if normalize_ya:
+        for old_char, new_char in YA_NORMALIZATION.items():
+            normalized_text = normalized_text.replace(old_char, new_char)
+
+    ### normalize ta marbuta ###
+    if normalize_ta_marbuta:
+        normalized_text = normalized_text.replace("ة", "ه")
 
     return normalized_text
 
@@ -79,7 +96,33 @@ def normalize_whitespace(text: str) -> str:
     return normalized_text
 
 
-def normalize_arabic_text(text: str) -> str:
+def space_punctuation(text: str) -> str:
+    """
+    This function adds whitespace around punctuation tokens.
+    Args:
+        text (str): The input text to normalize.
+    Returns:
+        str: The text after adding spaces around punctuation.
+    """
+    ### add spaces around punctuation ###
+    normalized_text: str = PUNCTUATION_PATTERN.sub(r" \1 ", text)
+
+    ### clean extra whitespace ###
+    normalized_text = normalize_whitespace(normalized_text)
+
+    return normalized_text
+
+
+def normalize_arabic_text(
+    text: str,
+    lowercase_english: bool = True,
+    normalize_alef: bool = True,
+    normalize_ya: bool = True,
+    normalize_ta_marbuta: bool = True,
+    remove_tatweel: bool = True,
+    normalize_spaces: bool = True,
+    add_punctuation_spaces: bool = True,
+) -> str:
     """
     This function applies light Arabic normalization without aggressive stemming.
     Args:
@@ -88,13 +131,28 @@ def normalize_arabic_text(text: str) -> str:
         str: The normalized text.
     """
     ### normalize characters ###
-    normalized_text: str = normalize_chars(text)
+    normalized_text: str = normalize_chars(
+        text,
+        normalize_alef=normalize_alef,
+        normalize_ya=normalize_ya,
+        normalize_ta_marbuta=normalize_ta_marbuta,
+        remove_tatweel=remove_tatweel,
+    )
+
+    ### lowercase english ###
+    if lowercase_english:
+        normalized_text = normalized_text.lower()
 
     ### normalize punctuation ###
     normalized_text = normalize_punctuation(normalized_text)
 
+    ### space punctuation ###
+    if add_punctuation_spaces:
+        normalized_text = space_punctuation(normalized_text)
+
     ### normalize whitespace ###
-    normalized_text = normalize_whitespace(normalized_text)
+    if normalize_spaces:
+        normalized_text = normalize_whitespace(normalized_text)
 
     return normalized_text
 

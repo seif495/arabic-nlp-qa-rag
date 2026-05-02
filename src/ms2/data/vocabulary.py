@@ -47,7 +47,15 @@ def get_record_tokens(record: FlattenedExternalData) -> list[str]:
     answer_tokens: list[str] = tokenize(answer)
 
     ### add structural tokens for downstream models ###
-    tokens: list[str] = [Q, *question_tokens, SEP, C, *context_tokens, SEP, *answer_tokens]
+    tokens: list[str] = [
+        Q,
+        *question_tokens,
+        SEP,
+        C,
+        *context_tokens,
+        SEP,
+        *answer_tokens,
+    ]
 
     return tokens
 
