@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tensorflow as tf
 
-D_DEC = 256
+D_DEC = 192
 D_FILM_H = 128
 
 

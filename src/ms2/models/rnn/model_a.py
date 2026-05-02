@@ -82,9 +82,9 @@ def parameter_audit(model: ModelA) -> dict[str, Any]:
     return {
         "model": "A",
         "total_parameters": total,
-        "budget_min": 2_400_000,
-        "budget_max": 3_000_000,
-        "within_budget": 2_400_000 <= total <= 3_000_000,
+        "budget_min": 2_000_000,
+        "budget_max": 2_800_000,
+        "within_budget": 2_000_000 <= total <= 2_800_000,
         "note": "Exact count depends on concrete char vocab size; architecture follows ADR §2.14 categories.",
     }
 

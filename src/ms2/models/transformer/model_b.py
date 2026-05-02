@@ -25,12 +25,14 @@ class ModelB(tf.keras.Model):
         self.embedding = TransformerTokenEmbedding(name="model_b_shared_embedding")
         self.encoder = TransformerEncoder(
             self.embedding,
+            n_layers=2,
             positional_mode=positional_mode,
             shared_layers=shared_layers,
             name="transformer_encoder",
         )
         self.decoder = TransformerDecoder(
             self.embedding,
+            n_layers=2,
             positional_mode=positional_mode,
             shared_layers=shared_layers,
             name="transformer_decoder",
@@ -70,9 +72,9 @@ def parameter_audit(model: ModelB) -> dict[str, Any]:
     return {
         "model": "B",
         "total_parameters": total,
-        "budget_min": 3_400_000,
-        "budget_max": 4_200_000,
-        "within_budget": 3_400_000 <= total <= 4_200_000,
+        "budget_min": 2_000_000,
+        "budget_max": 3_000_000,
+        "within_budget": 2_000_000 <= total <= 3_000_000,
     }
 
 

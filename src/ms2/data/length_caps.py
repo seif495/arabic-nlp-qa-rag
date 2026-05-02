@@ -15,14 +15,14 @@ from src.ms2.data.records import MS2DatasetRecord, load_ms1_processed_records
 
 LENGTH_CAPS: dict[str, int] = {
     "l_q": 32,
-    "l_c": 384,
-    "l_enc": 420,
+    "l_c": 284,
+    "l_enc": 320,
     "l_dec": 64,
 }
 LENGTH_AXES = ("question", "context", "encoder", "decoder")
 ADR_PLACEHOLDER_CAPS = dict(LENGTH_CAPS)
 SPECIAL_FORMAT_TOKENS = 4
-MAX_ENCODER_CAP = 420
+MAX_ENCODER_CAP = 320
 TOKEN_PATTERN = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 
 
