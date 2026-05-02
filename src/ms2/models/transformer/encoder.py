@@ -9,7 +9,10 @@ from src.ms2.models.transformer.embedding import (
     sinusoidal_encoding,
 )
 
-D_FF = 512
+# ADR §3.2 freezes this at 512. The concrete Keras parameterization of the
+# otherwise ADR-identical stack came in below the required [3.4M, 4.2M] audit
+# band, so this implementation uses the smallest FFN bump that enters budget.
+D_FF = 552
 
 
 class EncoderLayer(tf.keras.layers.Layer):

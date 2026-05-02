@@ -22,4 +22,7 @@ class KVCache:
     def populated_steps(self) -> int:
         if not self.self_attention or "k" not in self.self_attention[0]:
             return 0
-        return int(tf.shape(self.self_attention[0]["k"])[2])
+        steps = self.self_attention[0]["k"].shape[2]
+        if steps is not None:
+            return int(steps)
+        return int(tf.shape(self.self_attention[0]["k"])[2].numpy())

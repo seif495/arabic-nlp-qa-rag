@@ -129,6 +129,13 @@ class TransformerDecoder(tf.keras.layers.Layer):
                 cross_cache=None if cache is None else cache.cross_attention[idx],
                 start=start,
             )
+            if (
+                cache is not None
+                and tf.executing_eagerly()
+                and layer.self_attn.last_k is not None
+            ):
+                cache.self_attention[idx]["k"] = layer.self_attn.last_k
+                cache.self_attention[idx]["v"] = layer.self_attn.last_v
             self_weights_list.append(self_weights)
             cross_weights_list.append(cross_weights)
         return self.final_ln(x), self_weights_list, cross_weights_list

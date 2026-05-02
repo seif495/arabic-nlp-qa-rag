@@ -1,8 +1,8 @@
 {
-  "model": "A",
-  "status": "code_path_ready_requires_tensorflow_runtime",
-  "budget_min": 2400000,
   "budget_max": 3000000,
-  "adr_target": 2700000,
-  "note": "Use src.ms2.models.rnn.model_a.write_parameter_audit after TensorFlow is installed to materialize the exact built-model count. TensorFlow wheel extraction failed in this environment due no space left on device."
+  "budget_min": 2400000,
+  "model": "A",
+  "note": "Exact count depends on concrete char vocab size; architecture follows ADR \u00a72.14 categories.",
+  "total_parameters": 2875811,
+  "within_budget": true
 }

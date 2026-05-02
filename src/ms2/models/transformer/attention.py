@@ -34,6 +34,8 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         self.dropout = tf.keras.layers.Dropout(dropout_attn)
         self.last_attention: tf.Tensor | None = None
         self.softmax_dtype: tf.dtypes.DType | None = None
+        self.last_k: tf.Tensor | None = None
+        self.last_v: tf.Tensor | None = None
 
     def call(
         self,
@@ -50,11 +52,13 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         if self.rope is not None:
             q = self.rope(q, start=start)
             k = self.rope(k, start=start)
-        if cache is not None:
+        if cache is not None and tf.executing_eagerly():
             if "k" in cache:
                 k = tf.concat([cache["k"], k], axis=2)
                 v = tf.concat([cache["v"], v], axis=2)
             cache["k"], cache["v"] = k, v
+        self.last_k = k
+        self.last_v = v
         scores = tf.matmul(q, k, transpose_b=True) / math.sqrt(D_HEAD)
         scores = _apply_masks(
             scores, padding_mask=padding_mask, use_causal_mask=use_causal_mask
@@ -129,8 +133,6 @@ def _apply_masks(
         )
     if use_causal_mask:
         mask = causal_mask(tf.shape(scores)[-2])
-        if tf.shape(scores)[-1] != tf.shape(scores)[-2]:
-            mask = tf.ones((tf.shape(scores)[-2], tf.shape(scores)[-1]), dtype=tf.bool)
         scores = tf.where(
             mask[None, None, :, :],
             scores,

@@ -30,9 +30,8 @@ class GatedMerge(tf.keras.layers.Layer):
         h2 = self.proj2(branches[1])
         h3 = self.proj3(branches[2])
         if self.mean_merge:
-            gates = tf.ones((*tf.shape(h1)[:-1], 3), dtype=h1.dtype) / tf.cast(
-                3.0, h1.dtype
-            )
+            gate_shape = tf.concat([tf.shape(h1)[:-1], tf.constant([3])], axis=0)
+            gates = tf.ones(gate_shape, dtype=h1.dtype) / tf.cast(3.0, h1.dtype)
         else:
             hidden = self.gate_hidden(tf.concat([h1, h2, h3], axis=-1))
             gates = tf.nn.softmax(tf.cast(self.gate_out(hidden), tf.float32), axis=-1)

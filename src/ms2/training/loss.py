@@ -31,6 +31,7 @@ def label_smoothed_cross_entropy(
         tf = None  # type: ignore[assignment]
 
     if tf is not None:
+        return_tensor = any(tf.is_tensor(value) for value in (logits, targets, mask))
         logits_tensor = tf.convert_to_tensor(logits, dtype=tf.float32)
         targets_tensor = tf.convert_to_tensor(targets, dtype=tf.int32)
         mask_tensor = tf.cast(tf.convert_to_tensor(mask), tf.float32)
@@ -46,11 +47,12 @@ def label_smoothed_cross_entropy(
         )
         masked_loss = token_loss * mask_tensor
         token_count = tf.reduce_sum(mask_tensor)
-        return tf.where(
+        loss = tf.where(
             token_count > 0,
             tf.reduce_sum(masked_loss) / token_count,
             tf.constant(0.0, dtype=tf.float32),
         )
+        return loss if return_tensor else float(loss.numpy())
 
     if len(logits) != len(targets) or len(targets) != len(mask):
         raise ValueError("logits, targets, and mask must have equal length")

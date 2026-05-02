@@ -27,7 +27,7 @@ class FiLMGenerator(tf.keras.layers.Layer):
         )
         self.out = tf.keras.layers.Dense(
             2 * D_DEC,
-            kernel_initializer=tf.keras.initializers.RandomNormal(stddev=1e-3),
+            kernel_initializer=tf.keras.initializers.RandomNormal(stddev=1e-4),
             bias_initializer=_FilmBiasInitializer(),
             name="film_gamma_beta",
         )
