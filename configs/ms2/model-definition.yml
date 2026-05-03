@@ -32,3 +32,25 @@ rnn_decoder:
   dropout_embedding: 0.2
   dropout_rnn: 0.3
   use_film: true
+
+transformer_embedding:
+  d_model: 192
+  dropout_embedding: 0.1
+
+transformer_positional_encoding:
+  max_length: 512
+  dropout: 0.1
+
+transformer_encoder:
+  num_layers: 3
+  num_heads: 4
+  d_ff: 512
+  dropout_attn: 0.1
+  dropout_ff: 0.1
+
+transformer_decoder:
+  num_layers: 3
+  num_heads: 4
+  d_ff: 512
+  dropout_attn: 0.1
+  dropout_ff: 0.1
