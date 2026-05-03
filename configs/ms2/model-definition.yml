@@ -2,7 +2,12 @@
 embedder:
   token_embedding_dim: 128
 
-rnn_branch-1:
+rnn_branch_1:
   pooling_activation: "tanh"
   dropout: 0.2
-  output_dim: 128
+  output_dim: 96
+
+rnn_branch_2:
+  dropout_embedding: 0.2
+  dropout_rnn: 0.3
+  output_dim: 96
