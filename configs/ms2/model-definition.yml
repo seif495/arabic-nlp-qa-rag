@@ -4,3 +4,5 @@ embedder:
 
 rnn_branch-1:
   pooling_activation: "tanh"
+  dropout: 0.2
+  output_dim: 128
