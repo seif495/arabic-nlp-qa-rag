@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import math
+from datetime import datetime
 import tensorflow as tf
 
 ### ~~~ LOCAL IMPORT ~~~ ###
@@ -15,9 +16,9 @@ from src.ms2.util import DataSteps, PipelineStep, data_path, load_pipeline_confi
 
 def load_training_config() -> dict:
     """
-    Load training config from model-definition.yml.
+    Load training config from training.yml.
     Returns:
-        Training config dictionary under ``rnn_training``.
+        Full training config dictionary.
     """
     config = load_pipeline_config(PipelineStep.model_training)
     if "transformer_training" in config and "rnn_training" in config:
@@ -35,6 +36,35 @@ def get_model_training_config(model_name: str) -> dict:
     if model_name == "b":
         return config.get("transformer_training", {})
     raise ValueError(f"Unsupported model_name: {model_name}")
+
+
+def build_checkpoint_dirs(model_name: str, training_config: dict) -> tuple[Path, Path]:
+    """
+    Build checkpoint directories for best and last checkpoints.
+    Args:
+        model_name: ``"a"`` for RNN or ``"b"`` for Transformer.
+        training_config: Model-specific training config dictionary.
+    Returns:
+        Tuple ``(best_dir, last_dir)``.
+    """
+    ### resolve root and run name ###
+    root_dir = Path(str(training_config.get("checkpoint_root_dir", "experiments/ms2")))
+    run_name = str(training_config.get("checkpoint_run_name", "baseline"))
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    ### map model key to stable folder name ###
+    model_dir_name = "model_a_rnn" if model_name == "a" else "model_b_transformer"
+
+    ### construct checkpoint directories ###
+    base_dir = root_dir / model_dir_name / run_name / timestamp / "checkpoints"
+    best_dir = base_dir / "best"
+    last_dir = base_dir / "last"
+
+    ### ensure directories exist ###
+    best_dir.mkdir(parents=True, exist_ok=True)
+    last_dir.mkdir(parents=True, exist_ok=True)
+
+    return best_dir, last_dir
 
 
 def forward_logits(
@@ -408,11 +438,36 @@ def train(
     total_steps = max(steps_per_epoch * resolved_epochs, 1)
     optimizer = build_optimizer(model_name=model_name, total_steps=total_steps)
 
+    ### optionally create checkpoint managers ###
+    save_checkpoints = bool(training_config.get("save_checkpoints", True))
+    best_manager: tf.train.CheckpointManager | None = None
+    last_manager: tf.train.CheckpointManager | None = None
+    best_eval_loss = float("inf")
+
+    if save_checkpoints:
+        best_dir, last_dir = build_checkpoint_dirs(model_name, training_config)
+        checkpoint = tf.train.Checkpoint(model=model, optimizer=optimizer)
+        best_manager = tf.train.CheckpointManager(
+            checkpoint=checkpoint,
+            directory=str(best_dir),
+            max_to_keep=1,
+            checkpoint_name="ckpt_best",
+        )
+        last_manager = tf.train.CheckpointManager(
+            checkpoint=checkpoint,
+            directory=str(last_dir),
+            max_to_keep=1,
+            checkpoint_name="ckpt_last",
+        )
+
     ### run epochs ###
     history: list[dict] = []
+    last_checkpoint_path = ""
+    best_checkpoint_path = ""
     for epoch in range(resolved_epochs):
         ### train phase ###
         train_metric = tf.keras.metrics.Mean(name="train_loss")
+        train_progbar = tf.keras.utils.Progbar(target=steps_per_epoch, verbose=1)
         for step, (features, targets) in enumerate(train_ds):
             if steps_limit_per_epoch is not None and step >= steps_limit_per_epoch:
                 break
@@ -426,10 +481,13 @@ def train(
                 label_smoothing=label_smoothing,
             )
             train_metric.update_state(loss)
+            train_progbar.update(step + 1, values=[("loss", float(loss.numpy()))])
 
         ### eval phase ###
         eval_metric = tf.keras.metrics.Mean(name="eval_loss")
-        for features, targets in test_ds:
+        eval_steps = math.ceil(len(test_records) / max(resolved_batch_size, 1))
+        eval_progbar = tf.keras.utils.Progbar(target=eval_steps, verbose=1)
+        for eval_step_index, (features, targets) in enumerate(test_ds):
             loss = eval_step(
                 model_name,
                 model,
@@ -439,6 +497,7 @@ def train(
                 label_smoothing=label_smoothing,
             )
             eval_metric.update_state(loss)
+            eval_progbar.update(eval_step_index + 1, values=[("eval_loss", float(loss.numpy()))])
 
         epoch_summary = {
             "epoch": epoch + 1,
@@ -446,17 +505,39 @@ def train(
             "eval_loss": float(eval_metric.result().numpy()),
         }
         history.append(epoch_summary)
+
+        ### save last checkpoint every epoch ###
+        if last_manager is not None:
+            saved_last = last_manager.save(checkpoint_number=epoch + 1)
+            last_checkpoint_path = "" if saved_last is None else saved_last
+
+        ### save best checkpoint when eval improves ###
+        current_eval = epoch_summary["eval_loss"]
+        if best_manager is not None and current_eval < best_eval_loss:
+            best_eval_loss = current_eval
+            saved_best = best_manager.save(checkpoint_number=epoch + 1)
+            best_checkpoint_path = "" if saved_best is None else saved_best
+
         print(
             f"[train] epoch={epoch_summary['epoch']} "
             f"train_loss={epoch_summary['train_loss']:.4f} "
             f"eval_loss={epoch_summary['eval_loss']:.4f}"
         )
 
+        if save_checkpoints:
+            print(
+                f"[ckpt] epoch={epoch_summary['epoch']} "
+                f"best={best_checkpoint_path or 'n/a'} "
+                f"last={last_checkpoint_path or 'n/a'}"
+            )
+
     return {
         "model": model,
         "history": history,
         "train_size": len(train_records),
         "test_size": len(test_records),
+        "best_checkpoint": best_checkpoint_path,
+        "last_checkpoint": last_checkpoint_path,
     }
 
 

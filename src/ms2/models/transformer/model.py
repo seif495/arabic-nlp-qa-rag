@@ -30,9 +30,24 @@ class TransformerModel(tf.keras.Model):
     """
 
     def __init__(self, vocab_size: int | None = None, **kwargs: object) -> None:
+        """
+        Initialize full Model B vanilla Transformer.
+
+        Args:
+            vocab_size: Optional explicit vocabulary size override. If omitted,
+                vocab size is derived from the preprocessed vocab file.
+            **kwargs: Additional keyword arguments passed to ``tf.keras.Model``.
+
+        Returns:
+            None.
+        """
+        ### init ###
         super().__init__(**kwargs)
+
+        ### load model-definition config ###
         config = load_pipeline_config(PipelineStep.model_definition)
 
+        ### get config values ###
         num_enc_layers = int(
             get_config_value(config, "transformer_encoder", "num_layers", 3)
         )
@@ -43,14 +58,17 @@ class TransformerModel(tf.keras.Model):
             get_config_value(config, "transformer_embedding", "dropout_embedding", 0.1)
         )
 
+        ### resolve vocabulary size ###
         resolved_vocab_size = get_vocab_size() if vocab_size is None else vocab_size
 
+        ### define shared embedding + position path ###
         self.token_embedding = TokenEmbedding(
             vocab_size=resolved_vocab_size, name="tok_emb"
         )
         self.positional_encoding = PositionalEncoding(name="pos_enc")
         self.embedding_dropout = tf.keras.layers.Dropout(dropout_embedding)
 
+        ### define encoder and decoder block stacks ###
         self.encoder_blocks = [
             EncoderBlock(name=f"encoder_block_{idx}") for idx in range(num_enc_layers)
         ]
@@ -58,6 +76,7 @@ class TransformerModel(tf.keras.Model):
             DecoderBlock(name=f"decoder_block_{idx}") for idx in range(num_dec_layers)
         ]
 
+        ### define final normalization and vocab projection ###
         self.final_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
         self.output_projection = tf.keras.layers.Dense(
             resolved_vocab_size,
@@ -73,8 +92,23 @@ class TransformerModel(tf.keras.Model):
     ) -> tf.Tensor | dict[str, tf.Tensor]:
         """
         Run full transformer forward pass.
+
+        Args:
+            encoder_input_ids: Encoder token IDs of shape ``(B, L_enc)``.
+            decoder_inputs: Teacher-forced decoder prefix IDs of shape
+                ``(B, L_dec)``.
+            training: Whether the model is running in training mode.
+            return_details: Whether to return auxiliary tensors.
+
+        Returns:
+            Either logits tensor of shape ``(B, L_dec, V)`` or a dictionary
+            containing logits and auxiliary tensors.
         """
         ### build masks ###
+        # dim(enc_pad) = (B, 1, L_enc)
+        # dim(dec_pad) = (B, 1, L_dec)
+        # dim(causal)  = (1, L_dec, L_dec)
+        # dim(self_mask) = (B, L_dec, L_dec)
         enc_pad = make_padding_mask(encoder_input_ids)
         dec_pad = make_padding_mask(decoder_inputs)
         dec_len = tf.shape(decoder_inputs)[1]
@@ -82,20 +116,24 @@ class TransformerModel(tf.keras.Model):
         self_mask = tf.logical_and(dec_pad, causal)
 
         ### encoder embedding path ###
+        # dim(enc) = (B, L_enc, d_model)
         enc = self.token_embedding(encoder_input_ids)
         enc = self.positional_encoding(enc, training=training)
         enc = self.embedding_dropout(enc, training=training)
 
         ### encoder blocks ###
+        # dim(enc) stays (B, L_enc, d_model)
         for block in self.encoder_blocks:
             enc = block(enc, padding_mask=enc_pad, training=training)
 
         ### decoder embedding path ###
+        # dim(dec) = (B, L_dec, d_model)
         dec = self.token_embedding(decoder_inputs)
         dec = self.positional_encoding(dec, training=training)
         dec = self.embedding_dropout(dec, training=training)
 
         ### decoder blocks ###
+        # dim(dec) stays (B, L_dec, d_model)
         for block in self.decoder_blocks:
             dec = block(
                 dec,
@@ -105,6 +143,8 @@ class TransformerModel(tf.keras.Model):
                 training=training,
             )
 
+        ### final projection to vocabulary logits ###
+        # dim(logits) = (B, L_dec, V)
         dec = self.final_norm(dec)
         logits = self.output_projection(dec)
 
