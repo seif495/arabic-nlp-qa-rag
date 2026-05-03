@@ -9,6 +9,7 @@ from src.ms2.models.rnn.encoder import (
     Branch3,
     BranchAligner,
     GatedMerge,
+    masked_mean,
 )
 
 ### ~~~ STATE MANAGEMENT ~~~ ###
@@ -33,8 +34,12 @@ class Encoder(tf.keras.layers.Layer):
         joint_ids: ``(B, L_joint)``
 
     Outputs:
-        fused: ``(B, L_c, D_fuse)``
-        gates: ``(B, L_c, 3)``
+        Dictionary with both raw and derived encoder tensors:
+
+        - ``encoder_output``: fused context sequence ``(B, L_c, D_fuse)``
+        - ``encoder_mask``: context padding mask ``(B, L_c)``
+        - ``gates``: branch gates ``(B, L_c, 3)``
+        - ``encoder_summary``: masked mean summary ``(B, D_fuse)``
     """
 
     def __init__(self, embedder: Embedder | None = None, **kwargs: object) -> None:
@@ -72,7 +77,7 @@ class Encoder(tf.keras.layers.Layer):
         context_ids: tf.Tensor,
         joint_ids: tf.Tensor,
         training: bool = False,
-    ) -> tuple[tf.Tensor, tf.Tensor]:
+    ) -> dict[str, tf.Tensor]:
         """
         Run the encoder stack end-to-end.
 
@@ -87,9 +92,12 @@ class Encoder(tf.keras.layers.Layer):
             training: Whether the layer is running in training mode. Controls dropout.
 
         Returns:
-            A tuple ``(fused, gates)`` where:
-            - ``fused`` has shape ``(B, L_c, D_fuse)``.
-            - ``gates`` has shape ``(B, L_c, 3)``.
+            A dictionary containing:
+
+            - ``encoder_output``: ``(B, L_c, D_fuse)`` fused sequence.
+            - ``encoder_mask``: ``(B, L_c)`` context mask from ``context_ids``.
+            - ``gates``: ``(B, L_c, 3)`` per-position branch gates.
+            - ``encoder_summary``: ``(B, D_fuse)`` masked mean summary.
         """
         ### compute true question lengths (excluding padding) ###
         # BranchAligner needs this to locate where context starts inside the joint
@@ -122,7 +130,19 @@ class Encoder(tf.keras.layers.Layer):
         # dim(fused) = (B, L_c, D_fuse)
         # dim(gates) = (B, L_c, 3)
         fused, gates = self.gated_merge(aligned, training=training)
-        return fused, gates
+
+        ### compute context mask and non-destructive summary ###
+        # We keep the full sequence for the decoder and add a derived summary as an
+        # auxiliary global signal.
+        context_mask = tf.not_equal(context_ids, 0)
+        summary = masked_mean(fused, context_mask)
+
+        return {
+            "encoder_output": fused,
+            "encoder_mask": context_mask,
+            "gates": gates,
+            "encoder_summary": summary,
+        }
 
 
 def main() -> None:
@@ -149,10 +169,10 @@ def main() -> None:
     context_in = tf.keras.Input(shape=(l_c,), dtype=tf.int32, name="context_ids")
     joint_in = tf.keras.Input(shape=(l_joint,), dtype=tf.int32, name="joint_ids")
 
-    fused_out, gates_out = encoder(question_in, context_in, joint_in)
+    encoder_outputs = encoder(question_in, context_in, joint_in)
     model = tf.keras.Model(
         inputs=[question_in, context_in, joint_in],
-        outputs=[fused_out, gates_out],
+        outputs=encoder_outputs,
         name="rnn_encoder_smoke",
     )
     model.compile(optimizer=tf.keras.optimizers.Adam())
@@ -171,9 +191,11 @@ def main() -> None:
     )
 
     ### run a single forward pass and print key shapes ###
-    fused, gates = model([question_ids, context_ids, joint_ids], training=False)
-    print(f"fused shape: {fused.shape}")
-    print(f"gates shape: {gates.shape}")
+    outputs = model([question_ids, context_ids, joint_ids], training=False)
+    print(f"encoder_output shape: {outputs['encoder_output'].shape}")
+    print(f"encoder_mask shape: {outputs['encoder_mask'].shape}")
+    print(f"gates shape: {outputs['gates'].shape}")
+    print(f"encoder_summary shape: {outputs['encoder_summary'].shape}")
     print("encoder dry-run: ok")
 
 
