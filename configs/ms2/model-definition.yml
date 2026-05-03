@@ -11,3 +11,10 @@ rnn_branch_2:
   dropout_embedding: 0.2
   dropout_rnn: 0.3
   output_dim: 96
+
+rnn_branch_3:
+  token_cnn_dim: 64
+  token_cnn_kernel_sizes: [2, 3, 4]
+  token_cnn_activation: "relu"
+  dropout_embedding: 0.2
+  output_dim: 96
