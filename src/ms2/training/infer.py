@@ -3,6 +3,7 @@ import tensorflow as tf
 
 ### ~~~ LOCAL IMPORT ~~~ ###
 from src.ms2.models.rnn.model import RNNModel
+from src.ms2.models.transformer.model import TransformerModel
 
 ### ~~~ STATE MANAGEMENT ~~~ ###
 # None
@@ -85,7 +86,7 @@ def greedy_decode_model_a(
 
 def greedy_decode(
     model_name: str,
-    model: RNNModel,
+    model: RNNModel | TransformerModel,
     question_ids: tf.Tensor,
     context_ids: tf.Tensor,
     joint_ids: tf.Tensor,
@@ -109,4 +110,41 @@ def greedy_decode(
             max_decode_len=max_decode_len,
         )
 
-    raise NotImplementedError("Only model_name='a' decode is implemented right now.")
+    if model_name == "b":
+        ### initialize decoder inputs with <bos> ###
+        batch_size = tf.shape(joint_ids)[0]
+        decoder_prefix = tf.fill([batch_size, 1], tf.cast(bos_id, dtype=tf.int32))
+        generated_steps: list[tf.Tensor] = []
+        finished = tf.zeros([batch_size], dtype=tf.bool)
+
+        for _ in range(max_decode_len):
+            logits = model(
+                encoder_input_ids=joint_ids,
+                decoder_inputs=decoder_prefix,
+                training=False,
+            )
+            next_token = tf.argmax(logits[:, -1, :], axis=-1, output_type=tf.int32)
+            next_token = tf.where(
+                finished,
+                tf.fill(tf.shape(next_token), tf.cast(eos_id, dtype=tf.int32)),
+                next_token,
+            )
+            generated_steps.append(next_token)
+            finished = tf.logical_or(finished, tf.equal(next_token, eos_id))
+            decoder_prefix = tf.concat([decoder_prefix, next_token[:, None]], axis=1)
+            if bool(tf.reduce_all(finished).numpy()):
+                break
+
+        if len(generated_steps) == 0:
+            return tf.fill(
+                [batch_size, max_decode_len], tf.cast(eos_id, dtype=tf.int32)
+            )
+
+        generated = tf.stack(generated_steps, axis=1)
+        current_len = tf.shape(generated)[1]
+        pad_len = tf.maximum(max_decode_len - current_len, 0)
+        padding = tf.fill([batch_size, pad_len], tf.cast(eos_id, dtype=tf.int32))
+        generated = tf.concat([generated, padding], axis=1)
+        return generated[:, :max_decode_len]
+
+    raise NotImplementedError("Only model_name='a' or 'b' decode is implemented.")

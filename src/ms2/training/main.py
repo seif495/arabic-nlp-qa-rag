@@ -5,6 +5,7 @@ import tensorflow as tf
 
 ### ~~~ LOCAL IMPORT ~~~ ###
 from src.ms2.models.rnn.model import RNNModel
+from src.ms2.models.transformer.model import TransformerModel
 from src.ms2.training.train import train, build_dataset
 from src.ms2.training.infer import greedy_decode
 from src.ms2.util import DataSteps, data_path
@@ -28,13 +29,15 @@ def _load_vocab_special_ids() -> tuple[int, int]:
     return bos_id, eos_id
 
 
-def run() -> None:
+def run(model_name: str = "a") -> None:
     """
-    Run a tiny end-to-end dry run for Model A training + inference.
+    Run a tiny end-to-end dry run for Model A or Model B.
     """
     ### quick training smoke ###
-    result = train(model_name="a", batch_size=4, epochs=1, steps_limit_per_epoch=2)
-    model: RNNModel = result["model"]
+    result = train(
+        model_name=model_name, batch_size=4, epochs=1, steps_limit_per_epoch=2
+    )
+    model: RNNModel | TransformerModel = result["model"]
 
     ### build one batch from test records for decode check ###
     test_path = data_path[DataSteps.interim] / "test_records.json"
@@ -47,7 +50,7 @@ def run() -> None:
 
     ### run greedy decoding ###
     generated = greedy_decode(
-        model_name="a",
+        model_name=model_name,
         model=model,
         question_ids=features["question_ids"],
         context_ids=features["context_ids"],
@@ -63,4 +66,4 @@ def run() -> None:
 
 if __name__ == "__main__":
     tf.keras.utils.set_random_seed(13)
-    run()
+    run(model_name="a")

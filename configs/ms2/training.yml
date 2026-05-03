@@ -12,3 +12,17 @@ rnn_training:
   epsilon: 1.0e-9
   batch_size: 8
   epochs: 2
+
+transformer_training:
+  pad_id: 0
+  label_smoothing: 0.1
+  peak_lr: 3.0e-4
+  min_lr: 1.0e-5
+  warmup_ratio: 0.05
+  weight_decay: 0.01
+  global_clipnorm: 1.0
+  beta_1: 0.9
+  beta_2: 0.98
+  epsilon: 1.0e-9
+  batch_size: 8
+  epochs: 2

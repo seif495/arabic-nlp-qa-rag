@@ -6,6 +6,7 @@ import tensorflow as tf
 
 ### ~~~ LOCAL IMPORT ~~~ ###
 from src.ms2.models.rnn.model import RNNModel
+from src.ms2.models.transformer.model import TransformerModel
 from src.ms2.util import DataSteps, PipelineStep, data_path, load_pipeline_config
 
 ### ~~~ STATE MANAGEMENT ~~~ ###
@@ -19,7 +20,46 @@ def load_training_config() -> dict:
         Training config dictionary under ``rnn_training``.
     """
     config = load_pipeline_config(PipelineStep.model_training)
-    return config.get("rnn_training", {})
+    if "transformer_training" in config and "rnn_training" in config:
+        return config
+    return config
+
+
+def get_model_training_config(model_name: str) -> dict:
+    """
+    Pick model-specific training config block from training.yml.
+    """
+    config = load_training_config()
+    if model_name == "a":
+        return config.get("rnn_training", {})
+    if model_name == "b":
+        return config.get("transformer_training", {})
+    raise ValueError(f"Unsupported model_name: {model_name}")
+
+
+def forward_logits(
+    model_name: str,
+    model: RNNModel | TransformerModel,
+    features: dict[str, tf.Tensor],
+    training: bool,
+) -> tf.Tensor:
+    """
+    Dispatch model forward pass and return logits.
+    """
+    if model_name == "a":
+        return model(
+            question_ids=features["question_ids"],
+            context_ids=features["context_ids"],
+            joint_ids=features["joint_ids"],
+            decoder_inputs=features["decoder_inputs"],
+            training=training,
+        )
+
+    return model(
+        encoder_input_ids=features["joint_ids"],
+        decoder_inputs=features["decoder_inputs"],
+        training=training,
+    )
 
 
 def load_records(split: str) -> list[dict]:
@@ -265,7 +305,8 @@ def build_optimizer(model_name: str, total_steps: int) -> tf.keras.optimizers.Op
 
 @tf.function(reduce_retracing=True)
 def train_step(
-    model: RNNModel,
+    model_name: str,
+    model: RNNModel | TransformerModel,
     optimizer: tf.keras.optimizers.Optimizer,
     features: dict[str, tf.Tensor],
     targets: tf.Tensor,
@@ -274,12 +315,8 @@ def train_step(
 ) -> tf.Tensor:
     """Run one training step and return scalar loss."""
     with tf.GradientTape() as tape:
-        logits = model(
-            question_ids=features["question_ids"],
-            context_ids=features["context_ids"],
-            joint_ids=features["joint_ids"],
-            decoder_inputs=features["decoder_inputs"],
-            training=True,
+        logits = forward_logits(
+            model_name=model_name, model=model, features=features, training=True
         )
         loss = masked_generation_loss(
             logits=logits,
@@ -295,19 +332,16 @@ def train_step(
 
 @tf.function(reduce_retracing=True)
 def eval_step(
-    model: RNNModel,
+    model_name: str,
+    model: RNNModel | TransformerModel,
     features: dict[str, tf.Tensor],
     targets: tf.Tensor,
     pad_id: int,
     label_smoothing: float,
 ) -> tf.Tensor:
     """Run one evaluation step and return scalar loss."""
-    logits = model(
-        question_ids=features["question_ids"],
-        context_ids=features["context_ids"],
-        joint_ids=features["joint_ids"],
-        decoder_inputs=features["decoder_inputs"],
-        training=False,
+    logits = forward_logits(
+        model_name=model_name, model=model, features=features, training=False
     )
     return masked_generation_loss(
         logits=logits,
@@ -333,16 +367,18 @@ def train(
     Returns:
         Training summary dictionary.
     """
-    ### currently we only support model A implementation ###
-    if model_name != "a":
-        raise NotImplementedError("Only model_name='a' is implemented right now.")
+    ### validate supported models ###
+    if model_name not in {"a", "b"}:
+        raise ValueError("model_name must be 'a' or 'b'")
 
     ### resolve training settings from config with optional overrides ###
-    training_config = load_training_config()
+    training_config = get_model_training_config(model_name)
     resolved_batch_size = int(
         training_config.get("batch_size", 8) if batch_size is None else batch_size
     )
-    resolved_epochs = int(training_config.get("epochs", 2) if epochs is None else epochs)
+    resolved_epochs = int(
+        training_config.get("epochs", 2) if epochs is None else epochs
+    )
     pad_id = int(training_config.get("pad_id", 0))
     label_smoothing = float(training_config.get("label_smoothing", 0.1))
 
@@ -361,7 +397,11 @@ def train(
     )
 
     ### construct model and optimizer ###
-    model = RNNModel(name="rnn_model_a")
+    model: RNNModel | TransformerModel
+    if model_name == "a":
+        model = RNNModel(name="rnn_model_a")
+    else:
+        model = TransformerModel(name="transformer_model_b")
     steps_per_epoch = math.ceil(len(train_records) / max(resolved_batch_size, 1))
     if steps_limit_per_epoch is not None:
         steps_per_epoch = min(steps_per_epoch, steps_limit_per_epoch)
@@ -377,6 +417,7 @@ def train(
             if steps_limit_per_epoch is not None and step >= steps_limit_per_epoch:
                 break
             loss = train_step(
+                model_name,
                 model,
                 optimizer,
                 features,
@@ -390,6 +431,7 @@ def train(
         eval_metric = tf.keras.metrics.Mean(name="eval_loss")
         for features, targets in test_ds:
             loss = eval_step(
+                model_name,
                 model,
                 features,
                 targets,
