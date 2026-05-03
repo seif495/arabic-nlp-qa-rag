@@ -18,3 +18,8 @@ rnn_branch_3:
   token_cnn_activation: "relu"
   dropout_embedding: 0.2
   output_dim: 96
+
+rnn_gated_merge:
+  fusion_dim: 192
+  dropout_ff: 0.3
+  mean_merge: flase
