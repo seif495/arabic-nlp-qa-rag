@@ -1,0 +1,422 @@
+### ~~~ GLOBAL IMPORT ~~~ ###
+from pathlib import Path
+import json
+import math
+import tensorflow as tf
+
+### ~~~ LOCAL IMPORT ~~~ ###
+from src.ms2.models.rnn.model import RNNModel
+from src.ms2.util import DataSteps, PipelineStep, data_path, load_pipeline_config
+
+### ~~~ STATE MANAGEMENT ~~~ ###
+# None
+
+
+def load_training_config() -> dict:
+    """
+    Load training config from model-definition.yml.
+    Returns:
+        Training config dictionary under ``rnn_training``.
+    """
+    config = load_pipeline_config(PipelineStep.model_definition)
+    return config.get("rnn_training", {})
+
+
+def load_records(split: str) -> list[dict]:
+    """
+    Load preprocessed MS2 records for one split.
+    Args:
+        split: Dataset split name. Supported values: ``"train"`` or ``"test"``.
+    Returns:
+        A list of preprocessed record dictionaries.
+    """
+    ### validate split ###
+    assert split in {"train", "test"}, "split must be 'train' or 'test'"
+
+    ### resolve path under data/interim/ms2 ###
+    base_dir: Path = data_path[DataSteps.interim]
+    file_path: Path = base_dir / f"{split}_records.json"
+
+    ### load records ###
+    with file_path.open("r", encoding="utf-8") as file:
+        records: list[dict] = json.load(file)
+
+    return records
+
+
+def _record_to_tensors(
+    record: dict,
+) -> tuple[list[int], list[int], list[int], list[int], list[int]]:
+    """
+    Extract model inputs and target from one preprocessed record.
+    Args:
+        record: One preprocessed MS2 record.
+    Returns:
+        Tuple of ids:
+        - question_ids
+        - context_ids
+        - joint_ids
+        - decoder_input_ids
+        - decoder_target_ids
+    """
+    question_ids: list[int] = record["ids"]["question"]
+    context_ids: list[int] = record["ids"]["context"]
+    joint_ids: list[int] = record["ids"]["joint"]
+    decoder_input_ids: list[int] = record["generation_target"]["decoder_input_ids"]
+    decoder_target_ids: list[int] = record["generation_target"]["decoder_target_ids"]
+
+    return question_ids, context_ids, joint_ids, decoder_input_ids, decoder_target_ids
+
+
+def build_dataset(
+    records: list[dict], batch_size: int, shuffle: bool
+) -> tf.data.Dataset:
+    """
+    Build a padded tf.data dataset for generation training.
+    Args:
+        records: Preprocessed records.
+        batch_size: Batch size.
+        shuffle: Whether to shuffle records.
+    Returns:
+        A dataset yielding ``(features, decoder_target_ids)``.
+    """
+
+    def _generator():
+        """Yield one training example at a time."""
+        for record in records:
+            q, c, j, d_in, d_tgt = _record_to_tensors(record)
+            yield (
+                {
+                    "question_ids": q,
+                    "context_ids": c,
+                    "joint_ids": j,
+                    "decoder_inputs": d_in,
+                },
+                d_tgt,
+            )
+
+    ### define variable-length tensor signature ###
+    output_signature = (
+        {
+            "question_ids": tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            "context_ids": tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            "joint_ids": tf.TensorSpec(shape=(None,), dtype=tf.int32),
+            "decoder_inputs": tf.TensorSpec(shape=(None,), dtype=tf.int32),
+        },
+        tf.TensorSpec(shape=(None,), dtype=tf.int32),
+    )
+
+    dataset = tf.data.Dataset.from_generator(
+        _generator, output_signature=output_signature
+    )
+
+    ### optional shuffling for train split ###
+    if shuffle:
+        dataset = dataset.shuffle(
+            buffer_size=max(len(records), 1), reshuffle_each_iteration=True
+        )
+
+    ### pad dynamic lengths with 0 (pad token id) ###
+    dataset = dataset.padded_batch(
+        batch_size=batch_size,
+        padded_shapes=(
+            {
+                "question_ids": [None],
+                "context_ids": [None],
+                "joint_ids": [None],
+                "decoder_inputs": [None],
+            },
+            [None],
+        ),
+        padding_values=(
+            {
+                "question_ids": tf.constant(0, dtype=tf.int32),
+                "context_ids": tf.constant(0, dtype=tf.int32),
+                "joint_ids": tf.constant(0, dtype=tf.int32),
+                "decoder_inputs": tf.constant(0, dtype=tf.int32),
+            },
+            tf.constant(0, dtype=tf.int32),
+        ),
+        drop_remainder=False,
+    )
+
+    dataset = dataset.prefetch(tf.data.AUTOTUNE)
+    return dataset
+
+
+def masked_generation_loss(
+    logits: tf.Tensor,
+    targets: tf.Tensor,
+    pad_id: int = 0,
+    label_smoothing: float = 0.1,
+) -> tf.Tensor:
+    """
+    Compute masked token-level cross entropy for decoder targets.
+    Args:
+        logits: Vocabulary logits of shape ``(B, L, V)``.
+        targets: Target token ids of shape ``(B, L)``.
+        pad_id: Padding token id to ignore.
+        label_smoothing: Label smoothing epsilon.
+    Returns:
+        Scalar loss tensor.
+    """
+    ### cast logits to float32 for stable loss ###
+    logits_f32 = tf.cast(logits, dtype=tf.float32)
+
+    ### build one-hot targets for label smoothing ###
+    vocab_size = tf.shape(logits_f32)[-1]
+    one_hot = tf.one_hot(
+        tf.cast(targets, dtype=tf.int32), depth=vocab_size, dtype=tf.float32
+    )
+
+    ### per-token CE before masking ###
+    # dim(loss_per_token) = (B, L)
+    loss_per_token = tf.keras.losses.categorical_crossentropy(
+        one_hot,
+        logits_f32,
+        from_logits=True,
+        label_smoothing=label_smoothing,
+    )
+
+    ### mask out pad positions in targets ###
+    mask = tf.cast(tf.not_equal(targets, pad_id), dtype=tf.float32)
+    masked_loss = loss_per_token * mask
+
+    ### reduce by number of unmasked tokens ###
+    numerator = tf.reduce_sum(masked_loss)
+    denominator = tf.maximum(tf.reduce_sum(mask), 1.0)
+    return numerator / denominator
+
+
+class CosineWithWarmup(tf.keras.optimizers.schedules.LearningRateSchedule):
+    """Cosine decay with linear warmup for Model A training."""
+
+    def __init__(
+        self, peak_lr: float, min_lr: float, warmup_steps: int, total_steps: int
+    ) -> None:
+        super().__init__()
+        self.peak_lr = peak_lr
+        self.min_lr = min_lr
+        self.warmup_steps = max(warmup_steps, 1)
+        self.total_steps = max(total_steps, self.warmup_steps + 1)
+
+    def __call__(self, step: tf.Tensor) -> tf.Tensor:
+        step_f = tf.cast(step, tf.float32)
+
+        ### linear warmup phase ###
+        warmup_lr = self.peak_lr * (step_f / float(self.warmup_steps))
+
+        ### cosine decay phase ###
+        decay_steps = float(self.total_steps - self.warmup_steps)
+        progress = (step_f - float(self.warmup_steps)) / decay_steps
+        progress = tf.clip_by_value(progress, 0.0, 1.0)
+        cosine = 0.5 * (1.0 + tf.cos(math.pi * progress))
+        cosine_lr = self.min_lr + (self.peak_lr - self.min_lr) * cosine
+
+        return tf.where(step_f < float(self.warmup_steps), warmup_lr, cosine_lr)
+
+
+def build_optimizer(model_name: str, total_steps: int) -> tf.keras.optimizers.Optimizer:
+    """
+    Build optimizer for one model family.
+    Args:
+        model_name: Model key, currently ``"a"`` or ``"b"``.
+        total_steps: Total optimization steps for schedule setup.
+    Returns:
+        Configured optimizer instance.
+    """
+    training_config = load_training_config()
+    peak_lr = float(training_config.get("peak_lr", 3e-4))
+    min_lr = float(training_config.get("min_lr", 1e-5))
+    warmup_ratio = float(training_config.get("warmup_ratio", 0.05))
+    weight_decay = float(training_config.get("weight_decay", 0.01))
+    global_clipnorm = float(training_config.get("global_clipnorm", 1.0))
+    beta_1 = float(training_config.get("beta_1", 0.9))
+    beta_2 = float(training_config.get("beta_2", 0.98))
+    epsilon = float(training_config.get("epsilon", 1e-9))
+
+    ### model A uses cosine-with-warmup ###
+    if model_name == "a":
+        schedule = CosineWithWarmup(
+            peak_lr=peak_lr,
+            min_lr=min_lr,
+            warmup_steps=max(int(warmup_ratio * total_steps), 1),
+            total_steps=total_steps,
+        )
+    else:
+        ### placeholder for model B (Noam to be added) ###
+        schedule = CosineWithWarmup(
+            peak_lr=peak_lr,
+            min_lr=min_lr,
+            warmup_steps=max(int(warmup_ratio * total_steps), 1),
+            total_steps=total_steps,
+        )
+
+    optimizer = tf.keras.optimizers.AdamW(
+        learning_rate=schedule,
+        beta_1=beta_1,
+        beta_2=beta_2,
+        epsilon=epsilon,
+        weight_decay=weight_decay,
+        global_clipnorm=global_clipnorm,
+    )
+    return optimizer
+
+
+@tf.function(reduce_retracing=True)
+def train_step(
+    model: RNNModel,
+    optimizer: tf.keras.optimizers.Optimizer,
+    features: dict[str, tf.Tensor],
+    targets: tf.Tensor,
+    pad_id: int,
+    label_smoothing: float,
+) -> tf.Tensor:
+    """Run one training step and return scalar loss."""
+    with tf.GradientTape() as tape:
+        logits = model(
+            question_ids=features["question_ids"],
+            context_ids=features["context_ids"],
+            joint_ids=features["joint_ids"],
+            decoder_inputs=features["decoder_inputs"],
+            training=True,
+        )
+        loss = masked_generation_loss(
+            logits=logits,
+            targets=targets,
+            pad_id=pad_id,
+            label_smoothing=label_smoothing,
+        )
+
+    gradients = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+    return loss
+
+
+@tf.function(reduce_retracing=True)
+def eval_step(
+    model: RNNModel,
+    features: dict[str, tf.Tensor],
+    targets: tf.Tensor,
+    pad_id: int,
+    label_smoothing: float,
+) -> tf.Tensor:
+    """Run one evaluation step and return scalar loss."""
+    logits = model(
+        question_ids=features["question_ids"],
+        context_ids=features["context_ids"],
+        joint_ids=features["joint_ids"],
+        decoder_inputs=features["decoder_inputs"],
+        training=False,
+    )
+    return masked_generation_loss(
+        logits=logits,
+        targets=targets,
+        pad_id=pad_id,
+        label_smoothing=label_smoothing,
+    )
+
+
+def train(
+    model_name: str = "a",
+    batch_size: int | None = None,
+    epochs: int | None = None,
+    steps_limit_per_epoch: int | None = None,
+) -> dict:
+    """
+    Train one MS2 model with teacher forcing.
+    Args:
+        model_name: Model key, currently ``"a"`` or ``"b"``.
+        batch_size: Batch size.
+        epochs: Number of epochs.
+        steps_limit_per_epoch: Optional cap for quick dry runs.
+    Returns:
+        Training summary dictionary.
+    """
+    ### currently we only support model A implementation ###
+    if model_name != "a":
+        raise NotImplementedError("Only model_name='a' is implemented right now.")
+
+    ### resolve training settings from config with optional overrides ###
+    training_config = load_training_config()
+    resolved_batch_size = int(
+        training_config.get("batch_size", 8) if batch_size is None else batch_size
+    )
+    resolved_epochs = int(training_config.get("epochs", 2) if epochs is None else epochs)
+    pad_id = int(training_config.get("pad_id", 0))
+    label_smoothing = float(training_config.get("label_smoothing", 0.1))
+
+    ### load records and build datasets ###
+    train_records = load_records("train")
+    test_records = load_records("test")
+    train_ds = build_dataset(
+        records=train_records,
+        batch_size=resolved_batch_size,
+        shuffle=True,
+    )
+    test_ds = build_dataset(
+        records=test_records,
+        batch_size=resolved_batch_size,
+        shuffle=False,
+    )
+
+    ### construct model and optimizer ###
+    model = RNNModel(name="rnn_model_a")
+    steps_per_epoch = math.ceil(len(train_records) / max(resolved_batch_size, 1))
+    if steps_limit_per_epoch is not None:
+        steps_per_epoch = min(steps_per_epoch, steps_limit_per_epoch)
+    total_steps = max(steps_per_epoch * resolved_epochs, 1)
+    optimizer = build_optimizer(model_name=model_name, total_steps=total_steps)
+
+    ### run epochs ###
+    history: list[dict] = []
+    for epoch in range(resolved_epochs):
+        ### train phase ###
+        train_metric = tf.keras.metrics.Mean(name="train_loss")
+        for step, (features, targets) in enumerate(train_ds):
+            if steps_limit_per_epoch is not None and step >= steps_limit_per_epoch:
+                break
+            loss = train_step(
+                model,
+                optimizer,
+                features,
+                targets,
+                pad_id=pad_id,
+                label_smoothing=label_smoothing,
+            )
+            train_metric.update_state(loss)
+
+        ### eval phase ###
+        eval_metric = tf.keras.metrics.Mean(name="eval_loss")
+        for features, targets in test_ds:
+            loss = eval_step(
+                model,
+                features,
+                targets,
+                pad_id=pad_id,
+                label_smoothing=label_smoothing,
+            )
+            eval_metric.update_state(loss)
+
+        epoch_summary = {
+            "epoch": epoch + 1,
+            "train_loss": float(train_metric.result().numpy()),
+            "eval_loss": float(eval_metric.result().numpy()),
+        }
+        history.append(epoch_summary)
+        print(
+            f"[train] epoch={epoch_summary['epoch']} "
+            f"train_loss={epoch_summary['train_loss']:.4f} "
+            f"eval_loss={epoch_summary['eval_loss']:.4f}"
+        )
+
+    return {
+        "model": model,
+        "history": history,
+        "train_size": len(train_records),
+        "test_size": len(test_records),
+    }
+
+
+if __name__ == "__main__":
+    train(model_name="a", batch_size=4, epochs=1, steps_limit_per_epoch=3)
