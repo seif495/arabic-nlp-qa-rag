@@ -33,7 +33,7 @@ def get_vocab_size() -> int:
 
 
 class Embedder(tf.keras.layers.Layer):
-    def __init__(self) -> None:
+    def __init__(self, vocab_size: int | None = None) -> None:
         """
         The Embedder class is responsible for creating the token embedding layer. It
         takes in token ids and outputs the corresponding token embeddings. The embedding
@@ -43,9 +43,10 @@ class Embedder(tf.keras.layers.Layer):
         map token ids to meaningful vector representations that capture the semantic
         relationships between tokens.
         Args:
-            None
+            vocab_size: Optional explicit vocabulary size override. If omitted, vocab
+                size is loaded from ``data/interim/ms2/vocab.json``.
         Returns:
-            None
+            None.
         Note:
             The embedding layer initialization affects convergence and generalization.
             Initializing embeddings from a normal distribution with standard deviation
@@ -60,14 +61,16 @@ class Embedder(tf.keras.layers.Layer):
         config = load_pipeline_config(PipelineStep.model_definition)
 
         ### get the vocab size and token embedding dim ###
-        vocab_size: int = get_vocab_size()
+        resolved_vocab_size: int = (
+            get_vocab_size() if vocab_size is None else vocab_size
+        )
         token_embedding_dim: int = get_config_value(
             config, "embedder", "token_embedding_dim", 128
         )
 
         ### create the token embedding layer ###
         self.token_embedding = tf.keras.layers.Embedding(
-            input_dim=vocab_size,
+            input_dim=resolved_vocab_size,
             output_dim=token_embedding_dim,
             embeddings_initializer=tf.keras.initializers.RandomNormal(
                 stddev=token_embedding_dim**-0.5
@@ -78,10 +81,12 @@ class Embedder(tf.keras.layers.Layer):
 
     @property
     def embeddings(self) -> tf.Variable:
-        return self.embedding.embeddings
+        """Expose the underlying embedding matrix for weight tying/use elsewhere."""
+        return self.token_embedding.embeddings
 
     def call(self, token_ids: tf.Tensor) -> tf.Tensor:
-        return self.embedding(token_ids)
+        """Map token IDs of shape ``(B, L)`` to embeddings of shape ``(B, L, D)``."""
+        return self.token_embedding(token_ids)
 
 
 if __name__ == "__main__":

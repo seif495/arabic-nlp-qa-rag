@@ -28,6 +28,13 @@ packages = [
     "src.ms1.normalization",
     "src.ms1.spelling",
     "src.ms1.ingest",
+    "src.ms2",
+    "src.ms2.data",
+    "src.ms2.models",
+    "src.ms2.models.rnn",
+    "src.ms2.models.rnn.encoder",
+    "src.ms2.models.rnn.decoder",
+    "src.ms2.util",
 ]
 
 [dependency-groups]
