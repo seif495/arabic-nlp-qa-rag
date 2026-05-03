@@ -18,7 +18,7 @@ def load_training_config() -> dict:
     Returns:
         Training config dictionary under ``rnn_training``.
     """
-    config = load_pipeline_config(PipelineStep.model_definition)
+    config = load_pipeline_config(PipelineStep.model_training)
     return config.get("rnn_training", {})
 
 

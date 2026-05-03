@@ -17,6 +17,7 @@ class DataSteps(Enum):
 class PipelineStep(Enum):
     data_preprocessing = "data_preprocessing"
     model_definition = "model_definition"
+    model_training = "model_training"
 
 
 data_path: dict[DataSteps, Path] = {
@@ -29,6 +30,7 @@ data_path: dict[DataSteps, Path] = {
 config_path: dict[PipelineStep, Path] = {
     PipelineStep.data_preprocessing: Path("configs/ms2/preprocessing.yml"),
     PipelineStep.model_definition: Path("configs/ms2/model-definition.yml"),
+    PipelineStep.model_training: Path("configs/ms2/training.yml"),
 }
 
 
