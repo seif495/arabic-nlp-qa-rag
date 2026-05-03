@@ -36,7 +36,7 @@ class LearnedPooling(tf.keras.layers.Layer):
 
         ### get all the config values ###
         pooling_activation: str = get_config_value(
-            config, "rnn_branch-1", "pooling_activation", "tanh"
+            config, "rnn_branch_1", "pooling_activation", "tanh"
         )
 
         ### define the temporal projection layer ###
@@ -91,8 +91,39 @@ class LearnedPooling(tf.keras.layers.Layer):
 
 
 class Branch1(tf.keras.layers.Layer):
+    """
+    Question encoder branch for the RNN-based model.
+
+    Branch1 embeds a sequence of question token IDs, applies dropout, encodes the
+    sequence with a bidirectional LSTM, and then compresses the full sequence into
+    a single fixed-size vector using learned pooling.
+
+    Padding tokens with ID ``0`` are masked during both recurrent encoding and
+    pooling, so they do not affect the final representation.
+
+    Input shape:
+        ``(B, L)``
+
+    Output shape:
+        ``(B, 2 * output_dim)``
+    """
+
     def __init__(self, embedder: Embedder, **kwargs: object) -> None:
-        """"""
+        """
+        Initialize the Branch1 question encoder.
+
+        Loads the branch-specific hyperparameters from the model-definition config,
+        stores the shared token embedder, and constructs the dropout layer,
+        bidirectional LSTM encoder, and learned pooling layer.
+
+        Args:
+            embedder: Shared token embedding layer used to map token IDs to dense
+                vectors.
+            **kwargs: Additional keyword arguments passed to ``tf.keras.layers.Layer``.
+
+        Returns:
+            None.
+        """
         ### init ###
         super().__init__(**kwargs)
 
@@ -100,8 +131,8 @@ class Branch1(tf.keras.layers.Layer):
         config = load_pipeline_config(PipelineStep.model_definition)
 
         ### get all the config values ###
-        dropout: float = get_config_value(config, "rnn_branch-1", "dropout", 0.2)
-        output_dim: int = get_config_value(config, "rnn_branch-1", "output_dim", 128)
+        dropout: float = get_config_value(config, "rnn_branch_1", "dropout", 0.2)
+        output_dim: int = get_config_value(config, "rnn_branch_1", "output_dim", 128)
 
         ### define the layers ###
         self.embedder = embedder
@@ -112,8 +143,24 @@ class Branch1(tf.keras.layers.Layer):
         )
         self.pool = LearnedPooling(name="branch1_structured_pool")
 
-    def call(self, token_ids: tf.Tensor, training: bool = False):
-        """"""
+    def call(self, token_ids: tf.Tensor, training: bool = False) -> tf.Tensor:
+        """
+        Encode and pool a batch of token sequences.
+
+        Creates a padding mask from ``token_ids != 0``, embeds the token IDs, applies
+        dropout, encodes the sequence with a bidirectional LSTM, and pools the
+        resulting sequence into one learned weighted representation per example.
+
+        Args:
+            token_ids: Integer token ID tensor of shape ``(B, L)``, where ``B`` is the
+                batch size and ``L`` is the sequence length. Token ID ``0`` is treated
+                as padding.
+            training: Whether the layer is running in training mode. Controls dropout
+                behavior.
+
+        Returns:
+            A pooled sequence representation tensor of shape ``(B, 2 * output_dim)``.
+        """
         ### define the mask ###
         # 0 here is for padding tokens
         mask: tf.Tensor = tf.not_equal(token_ids, 0)
