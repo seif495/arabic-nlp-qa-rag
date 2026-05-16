@@ -1,6 +1,9 @@
 import os
 import sys
+from dotenv import load_dotenv
 import streamlit as st
+
+load_dotenv()
 
 # Ensure the repository root is on sys.path so `src` package is importable
 # when running `streamlit` from the `src/ms3/app` directory.
@@ -28,12 +31,12 @@ def init_chatbot(prompt_type: str, memory_strategy: str):
     )
 
 def main():
-    st.title("🗣️ Arabic Code-Switched RAG Chatbot")
+    st.title("Arabic Code-Switched RAG Chatbot")
     st.markdown("MS3 Submission • Evaluates strictly on retrieved MS1 contexts.")
     
     # ---------------- Sidebar Configuration ----------------
     with st.sidebar:
-        st.header("⚙️ System Settings")
+        st.header("System Settings")
         
         prompt_strat = st.selectbox(
             "Prompt Engineering Strategy",
@@ -83,12 +86,10 @@ def main():
                 
                 # Render metadata/logs (Satisfies requirement "Displays outputs and logs")
                 with st.expander("🛠️ Show Retrieval & Context Logs"):
-                    st.text("Retrieval Prompt:")
-                    st.code(chatbot.chain.first.format(
-                        context="[...Truncated Documents...]",
-                        history=chatbot.format_history(),
-                        question=user_query
-                    ))
+                    st.text("Last turn history passed to LLM:")
+                    st.code(chatbot.format_history() or "(no history yet)", language=None)
+                    st.text(f"Memory strategy: {chatbot.memory_strategy}")
+                    st.text(f"History turns stored: {len(chatbot.history)}")
 
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})

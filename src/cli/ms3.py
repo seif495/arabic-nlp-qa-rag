@@ -49,7 +49,7 @@ def main():
     
     # Vector store initialization parser
     init_parser = subparsers.add_parser("init-vectorstore", help="Initialize the ChromaDB by processing MS1 transcripts")
-    init_parser.add_argument("--input_dir", type=str, default="data/processed/ms1", help="Directory containing MS1 processed transcripts")
+    init_parser.add_argument("--input_dir", type=str, default="data/interim/normalized", help="Directory containing MS1 normalized transcripts (output of `ms1 normalize`)")
     init_parser.add_argument("--persist_dir", type=str, default="data/processed/ms3/chroma_db", help="Directory to persist the Chroma Vector Store")
     init_parser.add_argument("--num_episodes", type=int, default=3, help="Number of episodes to use (constraint: 3-5)")
 

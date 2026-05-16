@@ -65,9 +65,21 @@ class RagChatbot:
             return raw
             
         elif self.memory_strategy == "summarized_history":
-            # For this MVP, acting as a placeholder where actual summarization chain would run.
-            # E.g., summarized = self.summarize_chain.invoke({"history": full})
-            formatted.append("Summary of previous conversation: [User and Assistant discussed previously documented topics.]")
+            from langchain_core.prompts import PromptTemplate
+            
+            # Combine full history to summarize
+            full_history_text = ""
+            for human, ai in self.history:
+                full_history_text += f"User: {human}\nAssistant: {ai}\n"
+                
+            summary_prompt = PromptTemplate.from_template(
+                "Summarize the following conversation history briefly. Focus on the main topics discussed. Keep it concise.\n\nConversation History:\n{history}\n\nSummary:"
+            )
+            summarizer_chain = summary_prompt | self.llm | StrOutputParser()
+            
+            # Invoke LLM to generate summary on the fly
+            summary = summarizer_chain.invoke({"history": full_history_text})
+            formatted.append(f"Summary of previous conversation:\n{summary}")
             
         return "\n".join(formatted)
 
