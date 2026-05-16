@@ -11,13 +11,21 @@ requires-python = ">=3.11"
 dependencies = [
     "sentencepiece>=0.2.1",
     "tensorflow==2.16.2",
-    "tensorflow-metal==1.1.0",
+    "tensorflow-metal==1.1.0; sys_platform == 'darwin'",
     "tqdm>=4.67.1",
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.10",
+    "langchain-core>=0.1.0",
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.2",
+    "streamlit>=1.30.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]
 ms1 = "src.cli.ms1:main"
 ms2 = "src.cli.ms2:main"
+ms3 = "src.cli.ms3:main"
 
 [tool.setuptools]
 packages = [
@@ -38,6 +46,11 @@ packages = [
     "src.ms2.models.rnn",
     "src.ms2.models.transformer",
     "src.ms2.training",
+    "src.ms3",
+    "src.ms3.retrieval",
+    "src.ms3.generation",
+    "src.ms3.app",
+    "src.ms3.evaluation",
 ]
 
 [dependency-groups]
