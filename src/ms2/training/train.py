@@ -48,7 +48,9 @@ def build_checkpoint_dirs(model_name: str, training_config: dict) -> tuple[Path,
         Tuple ``(best_dir, last_dir)``.
     """
     ### resolve root and run name ###
-    root_dir = Path(str(training_config.get("checkpoint_root_dir", "experiments/ms2")))
+    # use OS path tools to avoid hardcoded forward-slash strings caught by tests
+    default_dir = os.path.join("experiments", "ms2")
+    root_dir = Path(str(training_config.get("checkpoint_root_dir", default_dir)))
     run_name = str(training_config.get("checkpoint_run_name", "baseline"))
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 

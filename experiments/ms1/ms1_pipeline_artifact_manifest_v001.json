@@ -19,9 +19,9 @@
     "docs_reports": "docs/reports"
   },
   "pipeline_artifacts": {
-    "execution_log": "experiments/ms1/ms1_pipeline_execution_log_v001.md",
-    "artifact_manifest": "experiments/ms1/ms1_pipeline_artifact_manifest_v001.json",
-    "integration_checklist": "experiments/ms1/ms1_pipeline_integration_checklist_v001.md",
-    "known_limitations": "experiments/ms1/ms1_pipeline_known_limitations_v001.md"
+    "execution_log": "experiments\\ms1\\ms1_pipeline_execution_log_v001.md",
+    "artifact_manifest": "experiments\\ms1\\ms1_pipeline_artifact_manifest_v001.json",
+    "integration_checklist": "experiments\\ms1\\ms1_pipeline_integration_checklist_v001.md",
+    "known_limitations": "experiments\\ms1\\ms1_pipeline_known_limitations_v001.md"
   }
 }

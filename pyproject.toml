@@ -51,6 +51,7 @@ packages = [
     "src.ms3",
     "src.ms3.retrieval",
     "src.ms3.generation",
+    "src.ms3.models",
     "src.ms3.app",
     "src.ms3.evaluation",
 ]

@@ -109,7 +109,8 @@ class RagEvaluator:
             chatbot.reset_memory()
             
             # Get Context manually to pass to evaluator
-            docs = chatbot.retriever.invoke(q)
+            from src.ms2.metrics.normalize import arabic_post_normalize
+            docs = chatbot.retriever.invoke(arabic_post_normalize(q))
             context = "\n".join([doc.page_content for doc in docs])
             
             # Generate

@@ -3,6 +3,7 @@ import json
 from typing import List, Optional
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from src.ms2.metrics.normalize import arabic_post_normalize
 
 class DocumentLoader:
     """
@@ -10,14 +11,14 @@ class DocumentLoader:
     for the Retrieval Augmented Generation system.
     """
     
-    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200):
+    def __init__(self, chunk_size: int = 2500, chunk_overlap: int = 500):
         """
         Initializes the document loader and text splitter.
         
         Chunking Strategy Justification:
         - RecursiveCharacterTextSplitter is used to preserve semantic coherence by 
           splitting on logical boundaries (paragraphs, then sentences, then words).
-        - chunk_size=1000 and chunk_overlap=200 provide a good balance between 
+        - chunk_size=2500 and chunk_overlap=500 provide a good balance between 
           capturing enough context for the LLM to understand semantic meaning, 
           while keeping chunks small enough to fit within context windows and 
           yield precise vector matches.
@@ -37,7 +38,7 @@ class DocumentLoader:
         Loads the provided transcripts and splits them into traceable chunks.
         
         Args:
-            episode_paths: Paths to 3-5 MS1 normalized transcript files.
+            episode_paths: Paths to 3-5 transcript files (will use MS2 normalization).
             
         Returns:
             A list of Langchain Documents with content and traceability metadata.
@@ -65,15 +66,15 @@ class DocumentLoader:
                     # Adjust dictionary keys based on MS1 schema
                     text_blocks = []
                     for item in data:
-                        text = item.get("normalized_text", item.get("text", ""))
+                        text = item.get("text", "")
                         if text:
-                            text_blocks.append(text)
+                            text_blocks.append(arabic_post_normalize(text))
                     raw_text = "\n".join(text_blocks)
                 else:
-                    raw_text = content
+                    raw_text = arabic_post_normalize(content)
             except json.JSONDecodeError:
                 # Fallback to pure text
-                raw_text = content
+                raw_text = arabic_post_normalize(content)
                 
             # Create a base document with the metadata tracking where it came from
             source_doc = Document(

@@ -65,6 +65,8 @@ def test_schedules_subclass_learning_rate_schedule(
         pass
 
     fake_tf = types.SimpleNamespace(
+        cast=lambda x, dtype: x,
+        float32="float32",
         keras=types.SimpleNamespace(
             optimizers=types.SimpleNamespace(
                 schedules=types.SimpleNamespace(LearningRateSchedule=FakeScheduleBase)

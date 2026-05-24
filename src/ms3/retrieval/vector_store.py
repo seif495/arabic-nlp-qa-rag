@@ -69,3 +69,9 @@ class VectorStoreManager:
             search_type=search_type,
             search_kwargs={"k": k}
         )
+
+    def get_retriever_for_reranking(self, initial_k: int = 20):
+        """
+        Returns a retriever that over-fetches documents for subsequent re-ranking.
+        """
+        return self.get_retriever(search_type="similarity", k=initial_k)
