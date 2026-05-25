@@ -167,9 +167,9 @@ class RagChatbot:
                 return response
             
         except Exception as e:
-            # "Never crash" requirement
-            print(f"System Error: {str(e)}")
-            return "حدث خطأ غير متوقع في النظام. الرجاء المحاولة مرة أخرى لاحقاً. / An unexpected system error occurred. Please try again later."
+            # Temporarily reveal error for debugging on Streamlit
+            error_repr = f"System Error: {type(e).__name__} - {str(e)}"
+            return error_repr
     
     def reset_memory(self):
         self.history = []
