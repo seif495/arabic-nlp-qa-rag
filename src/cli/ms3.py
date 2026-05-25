@@ -14,7 +14,6 @@ def init_vectorstore(args):
     num_episodes = args.num_episodes
     
     # Locate transcripts (Assuming JSON structured output from MS1 but fallback to txt exists in loader)
-    # The requirement says "Use only the original transcripts from MS1. You may use 3-5 episodes only."
     all_files = glob.glob(os.path.join(input_dir, "*.json"))
     if not all_files:
         all_files = glob.glob(os.path.join(input_dir, "*.txt"))
@@ -51,7 +50,7 @@ def main():
     init_parser = subparsers.add_parser("init-vectorstore", help="Initialize the ChromaDB by processing MS1 transcripts")
     init_parser.add_argument("--input_dir", type=str, default="data/interim/normalized", help="Directory containing MS1 normalized transcripts (output of `ms1 normalize`)")
     init_parser.add_argument("--persist_dir", type=str, default="data/processed/ms3/chroma_db", help="Directory to persist the Chroma Vector Store")
-    init_parser.add_argument("--num_episodes", type=int, default=3, help="Number of episodes to use (constraint: 3-5)")
+    init_parser.add_argument("--num_episodes", type=int, default=13, help="Number of episodes to use (constraint: up to 13)")
 
     # Streamlit parser
     run_parser = subparsers.add_parser("run-app", help="Run the Streamlit Web UI")

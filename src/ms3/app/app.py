@@ -55,6 +55,7 @@ def init_chatbot(prompt_type: str, memory_strategy: str, ms2_model_type: str, ge
 def main():
     st.title("Arabic Code-Switched RAG Chatbot")
     st.markdown("MS3 Submission • Evaluates strictly on retrieved MS1 contexts.")
+    st.markdown("[Click here to view the GitHub repo.](https://github.com/seif495/arabic-nlp-qa-rag)")
     
     # ---------------- Sidebar Configuration ----------------
     with st.sidebar:
@@ -117,7 +118,7 @@ def main():
         st.divider()
         if st.button("Reset Conversation"):
             st.session_state.messages = [
-                {"role": "assistant", "content": "مرحباً! أنا المساعد الذكي الخاص بك للإجابة على أسئلتك. كيف يمكنني مساعدتك اليوم؟ / Hello! I am your AI assistant. How can I help you today?"}
+                {"role": "assistant", "content": "مرحباً! أنا المساعد الذكي الخاص بك للإجابة على أسئلتك حول حلقات برنامج الدحيح الموسم الثامن (13 حلقة). كيف يمكنني مساعدتك اليوم؟ / Hello! I am your AI assistant, here to answer your questions regarding the 13 episodes of ElDa7ee7 Season 8. How can I help you today?"}
             ]
             st.session_state.chatbot = init_chatbot(prompt_strat, mem_strat, ms2_model, gen_mode)
             st.rerun()
@@ -125,7 +126,7 @@ def main():
     # ---------------- Initialize State ----------------
     if "messages" not in st.session_state or not st.session_state.messages:
         st.session_state.messages = [
-            {"role": "assistant", "content": "مرحباً! أنا المساعد الذكي الخاص بك للإجابة على أسئلتك. كيف يمكنني مساعدتك اليوم؟ / Hello! I am your AI assistant. How can I help you today?"}
+            {"role": "assistant", "content": "مرحباً! أنا المساعد الذكي الخاص بك للإجابة على أسئلتك حول حلقات برنامج الدحيح الموسم الثامن (13 حلقة). كيف يمكنني مساعدتك اليوم؟ / Hello! I am your AI assistant, here to answer your questions regarding the 13 episodes of ElDa7ee7 Season 8. How can I help you today?"}
         ]
         
     # Check for state changes that require chatbot re-initialization
