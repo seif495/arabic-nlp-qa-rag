@@ -110,8 +110,9 @@ def main():
                     )
                     status.update(label=f"Training complete! Checkpoint: {ckpt}", state="complete", expanded=False)
                     st.success(f"Model {ms2_model} trained and saved.")
-                    # Re-init chatbot to load new weights
-                    st.session_state.chatbot = init_chatbot(prompt_strat, mem_strat, ms2_model, gen_mode)
+                    # Let the main loop handle re-initialization to preserve history
+                    if "chatbot" in st.session_state:
+                        del st.session_state.chatbot
 
         st.divider()
         if st.button("Reset Conversation"):
@@ -130,7 +131,26 @@ def main():
     # Check for state changes that require chatbot re-initialization
     current_params = (prompt_strat, mem_strat, ms2_model, gen_mode)
     if "chatbot" not in st.session_state or st.session_state.get("prev_params") != current_params:
-        st.session_state.chatbot = init_chatbot(prompt_strat, mem_strat, ms2_model, gen_mode)
+        new_bot = init_chatbot(prompt_strat, mem_strat, ms2_model, gen_mode)
+        
+        # Restore conversation history from UI session state to prevent context loss
+        if "messages" in st.session_state and len(st.session_state.messages) > 1:
+            restored_history = []
+            msgs = st.session_state.messages[1:] # Skip initial greeting
+            user_msg = None
+            for m in msgs:
+                if m["role"] == "user":
+                    user_msg = m["content"]
+                elif m["role"] == "assistant" and user_msg is not None:
+                    # Handle dict responses from hybrid mode
+                    ans = m["content"]
+                    if isinstance(ans, dict):
+                        ans = ans.get("llm", "")
+                    restored_history.append((user_msg, ans))
+                    user_msg = None
+            new_bot.history = restored_history
+
+        st.session_state.chatbot = new_bot
         st.session_state.prev_params = current_params
 
     # ---------------- Chat Interface ----------------
