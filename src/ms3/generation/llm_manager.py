@@ -69,7 +69,7 @@ class LLMManager:
         api_key: Optional[str] = os.environ.get("GROQ_API_KEY")
         return ChatGroq(
             model=_GROQ_MODEL,
-            api_key=api_key,          # None → raises at call time, not import time
+            api_key=api_key or "missing_key",
             temperature=0.1,
             max_retries=3,
         )
@@ -82,7 +82,7 @@ class LLMManager:
         api_key: Optional[str] = os.environ.get("GOOGLE_API_KEY")
         return ChatGoogleGenerativeAI(
             model=_GEMINI_MODEL,
-            google_api_key=api_key,
+            google_api_key=api_key or "missing_key",
             temperature=0.1,
             max_retries=3,
         )

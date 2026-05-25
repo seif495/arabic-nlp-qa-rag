@@ -19,6 +19,12 @@ from src.ms3.models.train_ms2 import train_quick_ms2
 # App Configuration
 st.set_page_config(page_title="Arabic NLP RAG (MS3)", layout="wide")
 
+# Silently populate API keys from st.secrets if missing from environment
+if not os.environ.get("GROQ_API_KEY") and "GROQ_API_KEY" in st.secrets:
+    os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+if not os.environ.get("GOOGLE_API_KEY") and "GOOGLE_API_KEY" in st.secrets:
+    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+
 @st.cache_resource
 def get_retriever():
     vsm = VectorStoreManager(persist_directory="data/processed/ms3/chroma_db")
@@ -49,6 +55,7 @@ def init_chatbot(prompt_type: str, memory_strategy: str, ms2_model_type: str, ge
 def main():
     st.title("Arabic Code-Switched RAG Chatbot")
     st.markdown("MS3 Submission • Evaluates strictly on retrieved MS1 contexts.")
+    st.markdown("[Click here to view the GitHub repo.](https://github.com/seif495/arabic-nlp-qa-rag)")
     
     # ---------------- Sidebar Configuration ----------------
     with st.sidebar:
@@ -104,13 +111,14 @@ def main():
                     )
                     status.update(label=f"Training complete! Checkpoint: {ckpt}", state="complete", expanded=False)
                     st.success(f"Model {ms2_model} trained and saved.")
-                    # Re-init chatbot to load new weights
-                    st.session_state.chatbot = init_chatbot(prompt_strat, mem_strat, ms2_model, gen_mode)
+                    # Let the main loop handle re-initialization to preserve history
+                    if "chatbot" in st.session_state:
+                        del st.session_state.chatbot
 
         st.divider()
         if st.button("Reset Conversation"):
             st.session_state.messages = [
-                {"role": "assistant", "content": "مرحباً! أنا المساعد الذكي الخاص بك للإجابة على أسئلتك. كيف يمكنني مساعدتك اليوم؟ / Hello! I am your AI assistant. How can I help you today?"}
+                {"role": "assistant", "content": "مرحباً! أنا المساعد الذكي الخاص بك للإجابة على أسئلتك حول حلقات برنامج الدحيح الموسم الثامن (13 حلقة). كيف يمكنني مساعدتك اليوم؟ / Hello! I am your AI assistant, here to answer your questions regarding the 13 episodes of ElDa7ee7 Season 8. How can I help you today?"}
             ]
             st.session_state.chatbot = init_chatbot(prompt_strat, mem_strat, ms2_model, gen_mode)
             st.rerun()
@@ -118,13 +126,32 @@ def main():
     # ---------------- Initialize State ----------------
     if "messages" not in st.session_state or not st.session_state.messages:
         st.session_state.messages = [
-            {"role": "assistant", "content": "مرحباً! أنا المساعد الذكي الخاص بك للإجابة على أسئلتك. كيف يمكنني مساعدتك اليوم؟ / Hello! I am your AI assistant. How can I help you today?"}
+            {"role": "assistant", "content": "مرحباً! أنا المساعد الذكي الخاص بك للإجابة على أسئلتك حول حلقات برنامج الدحيح الموسم الثامن (13 حلقة). كيف يمكنني مساعدتك اليوم؟ / Hello! I am your AI assistant, here to answer your questions regarding the 13 episodes of ElDa7ee7 Season 8. How can I help you today?"}
         ]
         
     # Check for state changes that require chatbot re-initialization
     current_params = (prompt_strat, mem_strat, ms2_model, gen_mode)
     if "chatbot" not in st.session_state or st.session_state.get("prev_params") != current_params:
-        st.session_state.chatbot = init_chatbot(prompt_strat, mem_strat, ms2_model, gen_mode)
+        new_bot = init_chatbot(prompt_strat, mem_strat, ms2_model, gen_mode)
+        
+        # Restore conversation history from UI session state to prevent context loss
+        if "messages" in st.session_state and len(st.session_state.messages) > 1:
+            restored_history = []
+            msgs = st.session_state.messages[1:] # Skip initial greeting
+            user_msg = None
+            for m in msgs:
+                if m["role"] == "user":
+                    user_msg = m["content"]
+                elif m["role"] == "assistant" and user_msg is not None:
+                    # Handle dict responses from hybrid mode
+                    ans = m["content"]
+                    if isinstance(ans, dict):
+                        ans = ans.get("llm", "")
+                    restored_history.append((user_msg, ans))
+                    user_msg = None
+            new_bot.history = restored_history
+
+        st.session_state.chatbot = new_bot
         st.session_state.prev_params = current_params
 
     # ---------------- Chat Interface ----------------
