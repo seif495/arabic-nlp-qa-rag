@@ -1,0 +1,17 @@
+{
+  "run_id": "model_a_seed_13",
+  "model_id": "A",
+  "seed": 13,
+  "dev_em": 0.42,
+  "dev_token_f1": 0.61,
+  "dev_char_edit_distance": 0.18,
+  "dev_bleu1": 0.55,
+  "test_em": 0.4,
+  "test_token_f1": 0.59,
+  "test_char_edit_distance": 0.2,
+  "test_bleu1": 0.53,
+  "parameter_count": 2700000,
+  "peak_gpu_memory_mb": 6144.0,
+  "train_wall_clock_minutes": 75.0,
+  "mean_inference_time_ms_per_example": 18.5
+}

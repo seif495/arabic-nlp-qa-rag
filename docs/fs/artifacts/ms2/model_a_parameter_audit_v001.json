@@ -1,0 +1,8 @@
+{
+  "budget_max": 3000000,
+  "budget_min": 2400000,
+  "model": "A",
+  "note": "Exact count depends on concrete char vocab size; architecture follows ADR \u00a72.14 categories.",
+  "total_parameters": 2875811,
+  "within_budget": true
+}

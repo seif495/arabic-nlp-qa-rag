@@ -1,0 +1,14 @@
+{
+  "data_external_ms2_cleaned_input": "data/external/ms2-cleaned-input",
+  "data_processed_ms2": "data/processed/ms2",
+  "experiments_ms2": "experiments/ms2",
+  "tokenizer_path": "data/processed/ms2/ms2_tokenizer_bpe_4k_v001.model",
+  "char_vocab_path": "data/processed/ms2/ms2_char_vocab_v001.json",
+  "tfrecord_shard_dir": "data/processed/ms2/ms2_tfrecords_train_v001.dir",
+  "run_output_dir": "experiments/ms2/model_a/13",
+  "report_dir": "docs/fs/ms2"
+}
+
+Source:
+- Python API: `resolve_ms2_paths().as_relative_manifest()`
+- Module: `src/common/paths.py`

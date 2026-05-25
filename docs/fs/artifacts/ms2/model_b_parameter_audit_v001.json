@@ -1,0 +1,7 @@
+{
+  "budget_max": 4200000,
+  "budget_min": 3400000,
+  "model": "B",
+  "total_parameters": 3407344,
+  "within_budget": true
+}

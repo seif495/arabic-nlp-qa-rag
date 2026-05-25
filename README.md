@@ -24,7 +24,7 @@ In practice, that means this repo must always support:
 3. Implement and run milestone pipelines through `src/cli/` entrypoints.
 4. Track experiments in `experiments/` and document results in `docs/reports/`.
 
-Current status: the repository already contains the full architecture scaffold and directory contracts; implementation modules are added milestone by milestone.
+Current status: Milestone 3 is currently active, adding a Streamlit web application, vector store integration, and MS2 model fallback/hybrid generation.
 
 ## Project Scope
 
@@ -107,7 +107,9 @@ Primary module areas:
 Goal:
 - implement vanilla RAG over cleaned Arabic data,
 - add semantic caching based on embedding similarity,
-- evaluate prompt designs and context window strategies.
+- evaluate prompt designs and context window strategies,
+- integrate MS2 models for enhanced re-ranking and hybrid generation,
+- provide an interactive Streamlit UI.
 
 Required analyses include:
 - cache hit rate, saved model calls, threshold sensitivity,
@@ -115,6 +117,8 @@ Required analyses include:
 - context strategy trade-offs in latency, coherence, token use, and accuracy.
 
 Primary module areas:
+- `src/ms3/app/`
+- `src/ms3/models/`
 - `src/ms3/retrieval/`
 - `src/ms3/generation/`
 - `src/ms3/cache/`
@@ -143,6 +147,7 @@ python -m src.cli.ms2 train-rnn
 python -m src.cli.ms2 evaluate-transformer
 python -m src.cli.ms3 build-index
 python -m src.cli.ms3 run-rag
+streamlit run src/ms3/app/app.py
 ```
 
 ## Data and Artifact Rules

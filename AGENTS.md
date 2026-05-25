@@ -1,151 +1,38 @@
 # AGENTS.md
-Operational guide for coding agents working in this repository.
 
-## 1) Scope and current repository state
-- This repo is currently an architecture scaffold with docs and directory contracts.
-- As of now, there are no committed Python source files, tests, or dependency manifests.
-- Use this guide to keep future implementation consistent with the documented architecture.
+Compact, repo-specific guidance for coding agents.
 
-## 2) Source-of-truth documents
-- `README.md`
-- `docs/decisions/adr_001_repo_structure.md` (ADR-001)
-- `docs/fs/overall.md`
-- `docs/fs/milestone-1.md`
-- `docs/fs/milestone-2.md`
-- `docs/fs/milestone-3.md`
-- If this file conflicts with ADR-001, follow ADR-001 and update AGENTS.md.
+## Current Reality (do not assume scaffold-only)
+- This repo already has working Python code and tests for Milestone 1 under `src/ms1/`, `src/common/`, `src/cli/ms1.py`, and `tests/`.
+- `src/ms2/` and `src/ms3/` are directory scaffolds only (no Python package modules/entrypoints yet).
+- If docs claim something is "planned" but code/config exists, trust code/config first.
 
-## 3) Cursor and Copilot rules
-- `.cursorrules`: not present.
-- `.cursor/rules/`: not present.
-- `.github/copilot-instructions.md`: not present.
-- If any of these files are added later, merge their instructions into this document.
+## Verified Toolchain and Commands
+- Python version is pinned by `.python-version` to `3.11`.
+- Use `uv` workflow (lockfile is committed): `uv sync --dev`.
+- Lint/format: `uv run ruff check .` and `uv run ruff format .`.
+- Tests: `uv run pytest`.
+- Run one test file: `uv run pytest tests/ms1/test_dataset_export.py`.
+- Run one test: `uv run pytest tests/ms1/test_dataset_export.py::TestDatasetExport::test_sanity_check_reports_usable_dataset`.
 
-## 4) Environment and execution model
-- Primary language/runtime: Python (implied by repo structure and CLI style).
-- Entry points are CLI-first modules under `src/cli/`.
-- Canonical command pattern:
-  - `python -m src.cli.ms1 <command>`
-  - `python -m src.cli.ms2 <command>`
-  - `python -m src.cli.ms3 <command>`
-- Keep CLI files thin and orchestration-focused.
-- Keep reusable logic in `src/common/`, milestone logic in `src/ms1|ms2|ms3/`.
+## Entrypoints and Packaging Gotchas
+- Only implemented CLI is MS1: `uv run python -m src.cli.ms1 <command>` where `<command>` is one of `profile`, `detect-irregularities`, `normalize`, `build-dataset`, `run-all`.
+- Installed script `ms1` exists via `pyproject.toml` (`[project.scripts] ms1 = "src.cli.ms1:main"`).
+- `setuptools` package list is explicit (`src`, `src.cli`, `src.ms1`, `src.common`); if you add importable packages (for example `src.ms2`/`src.ms3` with `__init__.py`), update `pyproject.toml` or packaging/tests will drift.
 
-## 5) Build, lint, and test commands
-Important: no official toolchain files are committed yet (`pyproject.toml`, `requirements*.txt`, `pytest.ini`, etc. are absent). Treat commands below as the expected convention once code is added.
+## Data + Path Contracts Enforced in Code
+- Do not edit `data/external/` in place.
+- MS1 outputs should go through `src/common/paths.py` (`resolve_ms1_paths`, `MS1Paths`) instead of hardcoded paths.
+- Filename contract is enforced by `make_ms1_output_filename`: `ms1_<stage>_<name>_v###.<ext>`, lowercase snake_case tokens only.
+- `resolve_ms1_paths(..., create_dirs=True)` auto-creates writable output dirs (`data/interim`, `data/processed/ms1`, `experiments/ms1`, `docs/reports`).
 
-### Setup (expected)
-- `python -m venv .venv`
-- `source .venv/bin/activate` (macOS/Linux)
-- `pip install -r requirements.txt` (if present)
-- `pip install -e .` (if package metadata is present)
+## Tests That Catch Easy-to-Miss Regressions
+- `tests/common/test_schemas.py` keeps `src/common/schemas.py` EXAMPLE constants in sync with files under `docs/fs/artifacts/ms1/`; update both together.
+- `tests/cli/test_ms1_cli.py` checks CLI output pattern (`[<command>] status=...`) and command order for `run-all`.
+- `build_processed_dataset_records` only loads QA files matching `data/external/qa/*_QA.csv`; transcript context matching is title-based after canonicalization in `src/ms1/dataset_export.py`.
 
-### Build commands
-- No dedicated build step exists yet.
-- Packaging later: `python -m build`
-- Bytecode sanity check: `python -m compileall src`
-
-### Lint and format commands (expected)
-- Format: `ruff format .`
-- Lint: `ruff check .`
-- Lint autofix: `ruff check . --fix`
-- Type check: `mypy src`
-- If Black/Flake8 is later adopted, follow committed config files.
-
-### Test commands (pytest)
-- Full suite: `pytest`
-- Verbose: `pytest -vv`
-- Stop on first failure: `pytest -x`
-- File only: `pytest tests/test_<module>.py`
-- Single test function: `pytest tests/test_<module>.py::test_<name>`
-- Single test method: `pytest tests/test_<module>.py::Test<ClassName>::test_<name>`
-- By keyword: `pytest -k "<expr>"`
-- By marker: `pytest -m "<marker>"`
-
-### Test commands (unittest fallback)
-- Full suite: `python -m unittest discover -s tests -p "test_*.py"`
-- Single test: `python -m unittest tests.test_module.TestClass.test_method`
-
-## 6) Directory and ownership rules
-- Treat this project as one cumulative system across milestones.
-- Keep milestone-specific logic inside:
-  - `src/ms1/`
-  - `src/ms2/`
-  - `src/ms3/`
-- Put only truly reusable code in `src/common/`.
-- Do not create vague folders like `misc`, `helpers`, or `tmp_utils`.
-- Notebooks are exploratory only; production logic belongs in `src/`.
-
-## 7) Code style guidelines
-
-### Imports
-- Group imports: standard library, third-party, local.
-- Prefer absolute imports from package roots.
-- Avoid wildcard imports.
-- Import only what is used.
-- Keep import side effects minimal.
-
-### Formatting
-- Follow PEP 8 with max line length 88 (or formatter default).
-- Use one formatter repo-wide (prefer Ruff formatter if configured).
-- Keep functions focused; extract helpers for complex branches.
-- Avoid deeply nested control flow; prefer early returns/guards.
-
-### Types and interfaces
-- Add type hints to public functions and methods.
-- Add explicit return type annotations.
-- Use `dataclasses` or `TypedDict` for structured payloads.
-- Use `Protocol`/ABC for pluggable components.
-- Avoid `Any` unless unavoidable; narrow types at boundaries.
-
-### Naming conventions
-- `snake_case`: functions, variables, modules.
-- `PascalCase`: classes.
-- `UPPER_SNAKE_CASE`: constants.
-- Use milestone-aware names when ambiguity is possible.
-- Prefer descriptive names over short abbreviations.
-
-### Error handling and logging
-- Fail fast on invalid config and missing required files.
-- Raise specific exceptions with actionable messages.
-- Do not silently swallow exceptions.
-- Validate external input at boundaries (CLI args, file IO, model responses).
-- Use structured logging helpers from `src/common/logging_utils.py` once available.
-
-### Configuration and secrets
-- Store configuration in YAML under `configs/` only.
-- Do not rely on `.env` for project configuration.
-- Every non-sensitive config value needs an explicit default.
-- Validate sensitive required values at startup and error clearly.
-
-### Data handling
-- Never modify `data/external/` in place.
-- Write transformed outputs to `data/interim/`, `data/processed/`, or `data/artifacts/`.
-- Keep filenames stable and meaningful (avoid `final2.csv` style names).
-- Make milestone handoff artifacts explicit and reproducible.
-
-### CLI conventions
-- Expose key workflows through `src/cli/`.
-- Keep CLI commands deterministic and scriptable.
-- Return non-zero exit codes for failures.
-- Print concise status, keep deep diagnostics in logs.
-
-## 8) Testing conventions
-- Mirror source structure under `tests/` where practical.
-- Prefer unit tests for modules and integration tests for pipeline boundaries.
-- Use fixtures for shared setup; avoid hidden global state.
-- Seed randomness in tests for determinism.
-- Add regression tests for bug fixes.
-
-## 9) Documentation and change hygiene
-- Update docs when behavior, commands, or contracts change.
-- Keep milestone reports aligned with implementation details.
-- In PRs/commits, explain why changes were made, not only what changed.
-- Do not add generated artifacts to Git unless explicitly required.
-
-## 10) Agent behavior checklist
-- Before editing, read relevant FS/ADR docs.
-- Respect module boundaries and existing naming patterns.
-- Prefer minimal, targeted diffs.
-- Run relevant lint/tests for touched code (or state clearly why not run).
-- If toolchain files are added, update Section 5 with exact verified commands.
+## High-Value References
+- `pyproject.toml` (actual commands, scripts, package boundaries)
+- `src/cli/ms1.py` and `src/ms1/orchestration.py` (real execution flow)
+- `src/common/paths.py` (path/output contract)
+- `docs/fs/artifacts/ms1/ms1-artifact-map.md` (artifact naming/path intent)

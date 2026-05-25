@@ -1,0 +1,532 @@
+{
+  "generated_at": "2026-05-24T21:34:57.836234",
+  "analysis_scope": {
+    "code_switching_rule": "any_latin_token_present",
+    "required_categories": [
+      "punctuation_inconsistency",
+      "code_switching",
+      "orthographic_variation",
+      "formatting_artifacts"
+    ],
+    "extra_categories_allowed": true
+  },
+  "input_summary": {
+    "transcript_files": 13,
+    "qa_records": 3890,
+    "text_units_total": 23148,
+    "text_units_by_source": {
+      "transcript_line": 15368,
+      "qa_question": 3890,
+      "qa_answer": 3890
+    }
+  },
+  "detected_categories": [
+    "orthographic_variation",
+    "formatting_artifacts",
+    "code_switching",
+    "punctuation_inconsistency",
+    "repetition_emphasis"
+  ],
+  "frequency_table": [
+    {
+      "category": "orthographic_variation",
+      "count": 15953,
+      "percentage": 68.92
+    },
+    {
+      "category": "formatting_artifacts",
+      "count": 11204,
+      "percentage": 48.4
+    },
+    {
+      "category": "code_switching",
+      "count": 966,
+      "percentage": 4.17
+    },
+    {
+      "category": "punctuation_inconsistency",
+      "count": 158,
+      "percentage": 0.68
+    },
+    {
+      "category": "repetition_emphasis",
+      "count": 119,
+      "percentage": 0.51
+    }
+  ],
+  "category_details": {
+    "orthographic_variation": {
+      "count": 15953,
+      "percentage": 68.92,
+      "signal_breakdown": {
+        "variant_token_family": 13361,
+        "mixed_alif_forms": 7363,
+        "diacritics_presence": 5304,
+        "ya_alef_maksura_mix": 2110,
+        "tatweel_presence": 982
+      },
+      "examples": [
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 3,
+          "signal": "mixed_alif_forms",
+          "reason": "Multiple alif letter forms co-occur in the same text unit.",
+          "excerpt": "4.238: عملنا أفجر طيارة في تاريخ \"أمريكا\"."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 4,
+          "signal": "diacritics_presence",
+          "reason": "Arabic diacritics detected.",
+          "excerpt": "6.184: أنا متحمس جدًا من امبارح،"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 4,
+          "signal": "mixed_alif_forms",
+          "reason": "Multiple alif letter forms co-occur in the same text unit.",
+          "excerpt": "6.184: أنا متحمس جدًا من امبارح،"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 5,
+          "signal": "diacritics_presence",
+          "reason": "Arabic diacritics detected.",
+          "excerpt": "8.308: ها، ورّيني!"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 6,
+          "signal": "mixed_alif_forms",
+          "reason": "Multiple alif letter forms co-occur in the same text unit.",
+          "excerpt": "9.435: أقدم لحضرتك فخر الطيران الأمريكي"
+        }
+      ]
+    },
+    "formatting_artifacts": {
+      "count": 11204,
+      "percentage": 48.4,
+      "signal_breakdown": {
+        "timestamp_prefix": 11109,
+        "bullet_prefix": 80,
+        "symbol_clutter": 22,
+        "multi_space": 9
+      },
+      "examples": [
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 1,
+          "signal": "timestamp_prefix",
+          "reason": "Timestamp-like prefix detected.",
+          "excerpt": "0.0: سيادة الكولونيل، صبرك في محله،"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 2,
+          "signal": "timestamp_prefix",
+          "reason": "Timestamp-like prefix detected.",
+          "excerpt": "3.076: مبروك علينا،"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 3,
+          "signal": "timestamp_prefix",
+          "reason": "Timestamp-like prefix detected.",
+          "excerpt": "4.238: عملنا أفجر طيارة في تاريخ \"أمريكا\"."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 4,
+          "signal": "timestamp_prefix",
+          "reason": "Timestamp-like prefix detected.",
+          "excerpt": "6.184: أنا متحمس جدًا من امبارح،"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 5,
+          "signal": "timestamp_prefix",
+          "reason": "Timestamp-like prefix detected.",
+          "excerpt": "8.308: ها، ورّيني!"
+        }
+      ]
+    },
+    "code_switching": {
+      "count": 966,
+      "percentage": 4.17,
+      "signal_breakdown": {
+        "latin_token_presence": 966
+      },
+      "examples": [
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 7,
+          "signal": "latin_token_presence",
+          "reason": "Latin token(s) detected: F-35",
+          "excerpt": "12.205: الـF-35."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 21,
+          "signal": "latin_token_presence",
+          "reason": "Latin token(s) detected: Target",
+          "excerpt": "تـTarget أطفال بالتحديد يعني..."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 35,
+          "signal": "latin_token_presence",
+          "reason": "Latin token(s) detected: Model",
+          "excerpt": "63.501: اللي هو بيفكر يشتري الـModel دا يعني."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 50,
+          "signal": "latin_token_presence",
+          "reason": "Latin token(s) detected: Sensor",
+          "excerpt": "89.125: هل فيها Sensor رَكنة؟"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 51,
+          "signal": "latin_token_presence",
+          "reason": "Latin token(s) detected: Sensor",
+          "excerpt": "91.081: Sensor رَكنة؟!"
+        }
+      ]
+    },
+    "punctuation_inconsistency": {
+      "count": 158,
+      "percentage": 0.68,
+      "signal_breakdown": {
+        "ellipsis_pattern": 154,
+        "repeated_punctuation": 154,
+        "mixed_punctuation_systems": 3,
+        "space_before_punctuation": 1
+      },
+      "examples": [
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 15,
+          "signal": "repeated_punctuation",
+          "reason": "Repeated punctuation marks detected.",
+          "excerpt": "29.108: كمبيونر نسـ...."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 15,
+          "signal": "ellipsis_pattern",
+          "reason": "Ellipsis punctuation pattern found.",
+          "excerpt": "29.108: كمبيونر نسـ...."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 18,
+          "signal": "repeated_punctuation",
+          "reason": "Repeated punctuation marks detected.",
+          "excerpt": "34.878: مش عارف، يا فندم، بصراحة..."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 18,
+          "signal": "ellipsis_pattern",
+          "reason": "Ellipsis punctuation pattern found.",
+          "excerpt": "34.878: مش عارف، يا فندم، بصراحة..."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 21,
+          "signal": "repeated_punctuation",
+          "reason": "Repeated punctuation marks detected.",
+          "excerpt": "تـTarget أطفال بالتحديد يعني..."
+        }
+      ]
+    },
+    "repetition_emphasis": {
+      "count": 119,
+      "percentage": 0.51,
+      "signal_breakdown": {
+        "repeated_word_sequence": 119
+      },
+      "examples": [
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 45,
+          "signal": "repeated_word_sequence",
+          "reason": "Repeated word sequence detected.",
+          "excerpt": "80.211: لأ، لأ، ما تخافش، ما فيهاش."
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 147,
+          "signal": "repeated_word_sequence",
+          "reason": "Repeated word sequence detected.",
+          "excerpt": "256.895: خُد بالك انت، انت اللي سايق!"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 374,
+          "signal": "repeated_word_sequence",
+          "reason": "Repeated word sequence detected.",
+          "excerpt": "إنها تشيل 4 صواريخ جو جو،"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 485,
+          "signal": "repeated_word_sequence",
+          "reason": "Repeated word sequence detected.",
+          "excerpt": "803.602: ولكن Actually, Actually، يا عزيزي،"
+        },
+        {
+          "source_type": "transcript_line",
+          "video_id": "أعظم طائرة حربية  الدحيح",
+          "source_file": "أعظم طائرة حربية  الدحيح.txt",
+          "field_name": "content",
+          "line_number": 569,
+          "signal": "repeated_word_sequence",
+          "reason": "Repeated word sequence detected.",
+          "excerpt": "941.007: هنا، الصاروخ أرض جو، مش جو جو،"
+        }
+      ]
+    }
+  },
+  "orthographic_variant_families": [
+    {
+      "normalized": "علي",
+      "forms": [
+        "على",
+        "علي"
+      ],
+      "unit_count": 1108
+    },
+    {
+      "normalized": "كان",
+      "forms": [
+        "كأن",
+        "كان"
+      ],
+      "unit_count": 829
+    },
+    {
+      "normalized": "الجمله",
+      "forms": [
+        "الجملة",
+        "الجمله"
+      ],
+      "unit_count": 664
+    },
+    {
+      "normalized": "العباره",
+      "forms": [
+        "العبارة",
+        "العباره"
+      ],
+      "unit_count": 661
+    },
+    {
+      "normalized": "انا",
+      "forms": [
+        "أنا",
+        "إنا",
+        "انا"
+      ],
+      "unit_count": 383
+    },
+    {
+      "normalized": "انت",
+      "forms": [
+        "أنت",
+        "انت"
+      ],
+      "unit_count": 381
+    },
+    {
+      "normalized": "حاجه",
+      "forms": [
+        "حاجة",
+        "حاجه"
+      ],
+      "unit_count": 307
+    },
+    {
+      "normalized": "ايه",
+      "forms": [
+        "إيه",
+        "اية",
+        "ايه"
+      ],
+      "unit_count": 284
+    },
+    {
+      "normalized": "فيه",
+      "forms": [
+        "فئة",
+        "فئه",
+        "فيه"
+      ],
+      "unit_count": 275
+    },
+    {
+      "normalized": "ابو",
+      "forms": [
+        "أبو",
+        "ابو"
+      ],
+      "unit_count": 250
+    },
+    {
+      "normalized": "انه",
+      "forms": [
+        "أنه",
+        "إنه",
+        "انه"
+      ],
+      "unit_count": 246
+    },
+    {
+      "normalized": "سنه",
+      "forms": [
+        "سنة",
+        "سنه"
+      ],
+      "unit_count": 228
+    },
+    {
+      "normalized": "الي",
+      "forms": [
+        "إلى",
+        "الى",
+        "الي"
+      ],
+      "unit_count": 131
+    },
+    {
+      "normalized": "اول",
+      "forms": [
+        "أول",
+        "اول"
+      ],
+      "unit_count": 129
+    },
+    {
+      "normalized": "الف",
+      "forms": [
+        "ألف",
+        "الف"
+      ],
+      "unit_count": 127
+    },
+    {
+      "normalized": "ليه",
+      "forms": [
+        "لية",
+        "ليه"
+      ],
+      "unit_count": 124
+    },
+    {
+      "normalized": "لان",
+      "forms": [
+        "لأن",
+        "لان"
+      ],
+      "unit_count": 123
+    },
+    {
+      "normalized": "واحده",
+      "forms": [
+        "واحدة",
+        "واحده"
+      ],
+      "unit_count": 121
+    },
+    {
+      "normalized": "اسم",
+      "forms": [
+        "أسم",
+        "اسم"
+      ],
+      "unit_count": 110
+    },
+    {
+      "normalized": "انها",
+      "forms": [
+        "أنها",
+        "إنها",
+        "انها"
+      ],
+      "unit_count": 105
+    }
+  ]
+}

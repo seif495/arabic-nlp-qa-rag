@@ -1,0 +1,205 @@
+{
+  "unified_map_size": 116,
+  "examples": [
+    {
+      "minority_form": "أبني",
+      "dominant_form": "ابني"
+    },
+    {
+      "minority_form": "ابو",
+      "dominant_form": "أبو"
+    },
+    {
+      "minority_form": "احد",
+      "dominant_form": "أحد"
+    },
+    {
+      "minority_form": "احدى",
+      "dominant_form": "إحدى"
+    },
+    {
+      "minority_form": "احسن",
+      "dominant_form": "أحسن"
+    },
+    {
+      "minority_form": "اخدك",
+      "dominant_form": "آخدك"
+    },
+    {
+      "minority_form": "أخرًا،",
+      "dominant_form": "آخرًا،"
+    },
+    {
+      "minority_form": "اخوه",
+      "dominant_form": "أخوه"
+    },
+    {
+      "minority_form": "استاذ",
+      "dominant_form": "أستاذ"
+    },
+    {
+      "minority_form": "اسرع",
+      "dominant_form": "أسرع"
+    },
+    {
+      "minority_form": "اصغر",
+      "dominant_form": "أصغر"
+    },
+    {
+      "minority_form": "اصل",
+      "dominant_form": "أصل"
+    },
+    {
+      "minority_form": "اغلب",
+      "dominant_form": "أغلب"
+    },
+    {
+      "minority_form": "افكار",
+      "dominant_form": "أفكار"
+    },
+    {
+      "minority_form": "اقل",
+      "dominant_form": "أقل"
+    },
+    {
+      "minority_form": "أٌقوى",
+      "dominant_form": "أقوى"
+    },
+    {
+      "minority_form": "اكبر",
+      "dominant_form": "أكبر"
+    },
+    {
+      "minority_form": "اكتوبر",
+      "dominant_form": "أكتوبر"
+    },
+    {
+      "minority_form": "آل",
+      "dominant_form": "الـ"
+    },
+    {
+      "minority_form": "ال",
+      "dominant_form": "الـ"
+    },
+    {
+      "minority_form": "إل",
+      "dominant_form": "الـ"
+    },
+    {
+      "minority_form": "الارض",
+      "dominant_form": "الأرض"
+    },
+    {
+      "minority_form": "التأني",
+      "dominant_form": "التاني"
+    },
+    {
+      "minority_form": "الجُملة",
+      "dominant_form": "الجملة"
+    },
+    {
+      "minority_form": "الجنّة",
+      "dominant_form": "الجنة"
+    },
+    {
+      "minority_form": "الحكم",
+      "dominant_form": "الحُكم"
+    },
+    {
+      "minority_form": "السُلطان",
+      "dominant_form": "السلطان"
+    },
+    {
+      "minority_form": "الشابّ",
+      "dominant_form": "الشاب"
+    },
+    {
+      "minority_form": "الف",
+      "dominant_form": "ألف"
+    },
+    {
+      "minority_form": "المُشاهدين،",
+      "dominant_form": "المشاهدين،"
+    },
+    {
+      "minority_form": "الميه",
+      "dominant_form": "الميّه"
+    },
+    {
+      "minority_form": "النُص",
+      "dominant_form": "النص"
+    },
+    {
+      "minority_form": "الى",
+      "dominant_form": "إلى"
+    },
+    {
+      "minority_form": "اماكن",
+      "dominant_form": "أماكن"
+    },
+    {
+      "minority_form": "أنت",
+      "dominant_form": "انت"
+    },
+    {
+      "minority_form": "انما",
+      "dominant_form": "إنما"
+    },
+    {
+      "minority_form": "أنها",
+      "dominant_form": "إنها"
+    },
+    {
+      "minority_form": "انها",
+      "dominant_form": "إنها"
+    },
+    {
+      "minority_form": "أه،",
+      "dominant_form": "آه،"
+    },
+    {
+      "minority_form": "اهم",
+      "dominant_form": "أهم"
+    },
+    {
+      "minority_form": "او",
+      "dominant_form": "أو"
+    },
+    {
+      "minority_form": "اوروبا",
+      "dominant_form": "أوروبا"
+    },
+    {
+      "minority_form": "اي",
+      "dominant_form": "أي"
+    },
+    {
+      "minority_form": "ايام",
+      "dominant_form": "أيام"
+    },
+    {
+      "minority_form": "بتبدا",
+      "dominant_form": "بتبدأ"
+    },
+    {
+      "minority_form": "بتبقي",
+      "dominant_form": "بتبقى"
+    },
+    {
+      "minority_form": "بطّل",
+      "dominant_form": "بطل"
+    },
+    {
+      "minority_form": "بُعد",
+      "dominant_form": "بعد"
+    },
+    {
+      "minority_form": "بنـ",
+      "dominant_form": "بن"
+    },
+    {
+      "minority_form": "بَنى",
+      "dominant_form": "بني"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+---
+embedder:
+  token_embedding_dim: 128
+
+rnn_branch_1:
+  pooling_activation: "tanh"
+  dropout: 0.2
+  output_dim: 96
+
+rnn_branch_2:
+  dropout_embedding: 0.2
+  dropout_rnn: 0.3
+  output_dim: 96
+
+rnn_branch_3:
+  token_cnn_dim: 64
+  token_cnn_kernel_sizes: [2, 3, 4]
+  token_cnn_activation: "relu"
+  dropout_embedding: 0.2
+  output_dim: 96
+
+rnn_gated_merge:
+  fusion_dim: 192
+  dropout_ff: 0.3
+  mean_merge: false
+
+rnn_film:
+  hidden_dim: 128
+
+rnn_decoder:
+  decoder_dim: 256
+  dropout_embedding: 0.2
+  dropout_rnn: 0.3
+  use_film: true
+
+transformer_embedding:
+  d_model: 192
+  dropout_embedding: 0.1
+
+transformer_positional_encoding:
+  max_length: 512
+  dropout: 0.1
+
+transformer_encoder:
+  num_layers: 3
+  num_heads: 4
+  d_ff: 512
+  dropout_attn: 0.1
+  dropout_ff: 0.1
+
+transformer_decoder:
+  num_layers: 3
+  num_heads: 4
+  d_ff: 512
+  dropout_attn: 0.1
+  dropout_ff: 0.1

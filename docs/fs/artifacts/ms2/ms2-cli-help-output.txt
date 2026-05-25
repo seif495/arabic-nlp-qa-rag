@@ -1,0 +1,34 @@
+$ uv run python -m src.cli.ms2 --help
+usage: python -m src.cli.ms2 [-h]
+                             {prep-data,analyze-lengths,train,infer,evaluate,evaluate-protocol,ablate,compare,run-all}
+                             ...
+
+Milestone 2 pipeline command line interface.
+
+positional arguments:
+  {prep-data,analyze-lengths,train,infer,evaluate,evaluate-protocol,ablate,compare,run-all}
+    prep-data           Train tokenizer, build char vocab, and cache
+                        TFRecords.
+    analyze-lengths     Analyze MS1 output lengths and freeze MS2 caps.
+    train               Train one model on one seed from a RunConfig JSON
+                        file.
+    infer               Run greedy or beam decoding for a trained run.
+    evaluate            Compute EM, F1, char edit distance, and BLEU-1.
+    evaluate-protocol   Run the full MS2 evaluation protocol battery.
+    ablate              Run a configured ablation variant.
+    compare             Build the MS2 comparison table and diagnostic plots.
+    run-all             Run the full MS2 milestone orchestration in dependency
+                        order.
+
+options:
+  -h, --help            show this help message and exit
+
+$ uv run python -m src.cli.ms2 train --help
+usage: python -m src.cli.ms2 train [-h] [--model {a,b}] [--seed {13,42,91}]
+                                   --config CONFIG
+
+options:
+  -h, --help         show this help message and exit
+  --model {a,b}
+  --seed {13,42,91}
+  --config CONFIG    Path to RunConfig JSON for parameter-heavy settings.
