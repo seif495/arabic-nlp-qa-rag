@@ -53,11 +53,21 @@ def main():
     # ---------------- Sidebar Configuration ----------------
     with st.sidebar:
         st.header("API Keys")
-        groq_api_key = st.text_input("Groq API Key", type="password", value=os.environ.get("GROQ_API_KEY", ""))
+        
+        # Fallback to Streamlit secrets if not in environment
+        default_groq = os.environ.get("GROQ_API_KEY", "")
+        if not default_groq and "GROQ_API_KEY" in st.secrets:
+            default_groq = st.secrets["GROQ_API_KEY"]
+            
+        default_gemini = os.environ.get("GOOGLE_API_KEY", "")
+        if not default_gemini and "GOOGLE_API_KEY" in st.secrets:
+            default_gemini = st.secrets["GOOGLE_API_KEY"]
+
+        groq_api_key = st.text_input("Groq API Key", type="password", value=default_groq)
         if groq_api_key:
             os.environ["GROQ_API_KEY"] = groq_api_key
             
-        gemini_api_key = st.text_input("Google API Key", type="password", value=os.environ.get("GOOGLE_API_KEY", ""))
+        gemini_api_key = st.text_input("Google API Key", type="password", value=default_gemini)
         if gemini_api_key:
             os.environ["GOOGLE_API_KEY"] = gemini_api_key
 
