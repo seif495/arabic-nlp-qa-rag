@@ -19,6 +19,12 @@ from src.ms3.models.train_ms2 import train_quick_ms2
 # App Configuration
 st.set_page_config(page_title="Arabic NLP RAG (MS3)", layout="wide")
 
+# Silently populate API keys from st.secrets if missing from environment
+if not os.environ.get("GROQ_API_KEY") and "GROQ_API_KEY" in st.secrets:
+    os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+if not os.environ.get("GOOGLE_API_KEY") and "GOOGLE_API_KEY" in st.secrets:
+    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+
 @st.cache_resource
 def get_retriever():
     vsm = VectorStoreManager(persist_directory="data/processed/ms3/chroma_db")
@@ -52,26 +58,6 @@ def main():
     
     # ---------------- Sidebar Configuration ----------------
     with st.sidebar:
-        st.header("API Keys")
-        
-        # Fallback to Streamlit secrets if not in environment
-        default_groq = os.environ.get("GROQ_API_KEY", "")
-        if not default_groq and "GROQ_API_KEY" in st.secrets:
-            default_groq = st.secrets["GROQ_API_KEY"]
-            
-        default_gemini = os.environ.get("GOOGLE_API_KEY", "")
-        if not default_gemini and "GOOGLE_API_KEY" in st.secrets:
-            default_gemini = st.secrets["GOOGLE_API_KEY"]
-
-        groq_api_key = st.text_input("Groq API Key", type="password", value=default_groq)
-        if groq_api_key:
-            os.environ["GROQ_API_KEY"] = groq_api_key
-            
-        gemini_api_key = st.text_input("Google API Key", type="password", value=default_gemini)
-        if gemini_api_key:
-            os.environ["GOOGLE_API_KEY"] = gemini_api_key
-
-        st.divider()
         st.header("System Settings")
         
         prompt_strat = st.selectbox(
