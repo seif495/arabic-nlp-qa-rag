@@ -52,6 +52,16 @@ def main():
     
     # ---------------- Sidebar Configuration ----------------
     with st.sidebar:
+        st.header("API Keys")
+        groq_api_key = st.text_input("Groq API Key", type="password", value=os.environ.get("GROQ_API_KEY", ""))
+        if groq_api_key:
+            os.environ["GROQ_API_KEY"] = groq_api_key
+            
+        gemini_api_key = st.text_input("Google API Key", type="password", value=os.environ.get("GOOGLE_API_KEY", ""))
+        if gemini_api_key:
+            os.environ["GOOGLE_API_KEY"] = gemini_api_key
+
+        st.divider()
         st.header("System Settings")
         
         prompt_strat = st.selectbox(
