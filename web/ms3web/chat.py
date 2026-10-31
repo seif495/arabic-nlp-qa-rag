@@ -221,6 +221,7 @@ class RagEngine:
                 )
                 standalone = reply.text.strip() or question
                 provider = f"{reply.provider}:{reply.model}"
+                llm_errors.extend(reply.fallback_errors)
             except LLMUnavailableError as exc:
                 llm_errors.append(str(exc))
         timings["rewrite_ms"] = _ms(started)
@@ -254,6 +255,7 @@ class RagEngine:
                         fill(HUMAN_TEMPLATE, history=history_text, question=question),
                     )
                     provider = f"{reply.provider}:{reply.model}"
+                    llm_errors.extend(reply.fallback_errors)
                     llm_answer = reply.text
                     if "OUT_OF_DOMAIN" in llm_answer.upper():
                         llm_answer = OUT_OF_DOMAIN_MESSAGE
