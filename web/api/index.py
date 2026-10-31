@@ -4,8 +4,10 @@ All ``/api/*`` paths are rewritten to this function (see ``web/vercel.json``);
 the static UI in ``web/public/`` calls ``/api/config`` and ``/api/chat``.
 """
 
-from __future__ import annotations
-
+# No ``from __future__ import annotations`` here: pydantic must resolve the
+# request models' annotations at class creation, because Vercel may load
+# this file without registering it in ``sys.modules`` (string annotations
+# would then fail with "ChatRequest is not fully defined" on /api/chat).
 import sys
 from functools import lru_cache
 from pathlib import Path
