@@ -10,7 +10,7 @@ from src.ms2.models.rnn.align import BranchAligner
 from src.ms2.models.rnn.branch1 import Branch1QuestionEncoder
 from src.ms2.models.rnn.branch2 import Branch2ContextEncoder
 from src.ms2.models.rnn.branch3 import Branch3JointEncoder
-from src.ms2.models.rnn.decoder import FiLMLSTMDecoder
+from src.ms2.models.rnn.film_lstm_decoder import FiLMLSTMDecoder
 from src.ms2.models.rnn.embedding import SharedTokenEmbedding
 from src.ms2.models.rnn.film_generator import FiLMGenerator
 from src.ms2.models.rnn.gated_merge import GatedMerge

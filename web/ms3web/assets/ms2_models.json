@@ -1,0 +1,42 @@
+{
+  "default": "model_a",
+  "selection_metric": "dev_token_f1",
+  "models": [
+    {
+      "model": "model_a",
+      "display_name": "Model A (RNN + FiLM)",
+      "description": "Tri-encoder RNN, gated merge + FiLM-LSTM decoder (ADR \u00a72)",
+      "positional_encoding": "recurrent",
+      "runtime": "model_a_rnn",
+      "weights": "ms2_model_a.npz",
+      "rank": 1,
+      "parameter_count": 2422499,
+      "dev_em": 0.0676,
+      "dev_token_f1": 0.0998
+    },
+    {
+      "model": "model_b",
+      "display_name": "Model B (RoPE Transformer)",
+      "description": "Encoder-decoder Transformer with RoPE (ADR \u00a73)",
+      "positional_encoding": "rope",
+      "runtime": "seq2seq_transformer",
+      "weights": "ms2_model_b.npz",
+      "rank": 2,
+      "parameter_count": 2276608,
+      "dev_em": 0.058,
+      "dev_token_f1": 0.0974
+    },
+    {
+      "model": "transformer",
+      "display_name": "Vanilla Transformer (sinusoidal)",
+      "description": "Vanilla encoder-decoder Transformer, sinusoidal PE",
+      "positional_encoding": "sinusoidal",
+      "runtime": "seq2seq_transformer",
+      "weights": "ms2_transformer.npz",
+      "rank": 3,
+      "parameter_count": 4100992,
+      "dev_em": 0.0459,
+      "dev_token_f1": 0.0874
+    }
+  ]
+}

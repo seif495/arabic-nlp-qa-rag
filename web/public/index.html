@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ElDa7ee7 RAG Chatbot</title>
+  <meta name="description" content="Arabic code-switched RAG chatbot over ElDa7ee7 Season 8 with an integrated MS2 from-scratch model.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">د</span>
+        <div>
+          <div class="brand-title">ElDa7ee7 RAG</div>
+          <div class="brand-sub">MS3 · Arabic NLP QA</div>
+        </div>
+      </div>
+
+      <section class="group">
+        <h2>System settings</h2>
+        <label class="field">
+          <span>Prompt engineering strategy</span>
+          <select id="prompt_type">
+            <option value="arabic_guided">arabic_guided</option>
+            <option value="english_guided">english_guided</option>
+            <option value="arabic_minimal">arabic_minimal</option>
+            <option value="english_minimal">english_minimal</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Context window strategy</span>
+          <select id="memory_strategy">
+            <option value="sliding_window">sliding_window</option>
+            <option value="full_history">full_history</option>
+            <option value="strict_truncation">strict_truncation</option>
+            <option value="summarized_history">summarized_history</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Retrieved chunks (top-k): <output id="top_k_out">6</output></span>
+          <input id="top_k" type="range" min="1" max="15" value="6">
+        </label>
+      </section>
+
+      <section class="group">
+        <h2>MS2 integration</h2>
+        <div class="model-card" id="model-card">
+          <label class="field">
+            <span>MS2 model</span>
+            <select id="ms2_model"></select>
+          </label>
+          <div class="model-meta" id="model-meta"></div>
+          <div class="model-status" id="model-status">Checking…</div>
+          <div class="model-meta">The default is the best of the four MS2 models on dev token-F1 (<a href="https://github.com/seif495/arabic-nlp-qa-rag/blob/main/docs/reports/ms3_web_model_selection.md" target="_blank" rel="noopener">selection report</a>). All were trained from scratch on the 3.5k MS1 QA pairs, so their answers are experimental and shown for comparison with the LLM.</div>
+        </div>
+        <fieldset class="field" id="gen_mode_set">
+          <legend>Generation mode</legend>
+          <label class="radio"><input type="radio" name="generation_mode" value="llm_only" checked> LLM only</label>
+          <label class="radio"><input type="radio" name="generation_mode" value="ms2_only"> MS2 only</label>
+          <label class="radio"><input type="radio" name="generation_mode" value="hybrid"> Hybrid (side by side)</label>
+        </fieldset>
+        <label class="check">
+          <input type="checkbox" id="use_reranking">
+          <span>Re-rank chunks with the MS2 model</span>
+        </label>
+      </section>
+
+      <section class="group">
+        <button class="btn-secondary" id="reset">Reset conversation</button>
+        <p class="footnote" id="llm-status"></p>
+        <p class="footnote"><a href="https://github.com/seif495/arabic-nlp-qa-rag" target="_blank" rel="noopener">GitHub repository</a></p>
+      </section>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="menu" id="menu" aria-label="Toggle settings">☰</button>
+        <div>
+          <h1>Arabic Code-Switched RAG Chatbot</h1>
+          <p class="subtitle">Answers strictly from retrieved ElDa7ee7 Season 8 transcripts (13 episodes).</p>
+        </div>
+      </header>
+
+      <div class="messages" id="messages" aria-live="polite"></div>
+
+      <form class="composer" id="composer">
+        <textarea id="question" rows="1" dir="auto" placeholder="إسأل هنا... / Ask your question here..." required></textarea>
+        <button type="submit" class="btn-primary" id="send">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <template id="tpl-message">
+    <div class="msg">
+      <div class="avatar"></div>
+      <div class="bubble"></div>
+    </div>
+  </template>
+
+  <script src="/app.js"></script>
+</body>
+</html>
