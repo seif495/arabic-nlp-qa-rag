@@ -6,7 +6,7 @@ import pytest
 
 tf = pytest.importorskip("tensorflow")
 
-from src.ms2.models.rnn.decoder import FiLMLSTMDecoder
+from src.ms2.models.rnn.film_lstm_decoder import FiLMLSTMDecoder
 from src.ms2.models.rnn.embedding import SharedTokenEmbedding
 from src.ms2.models.rnn.model_a import ModelA, parameter_audit
 
