@@ -36,19 +36,21 @@ def init_vectorstore(args):
 
 def export_web(args):
     """
-    Writes the Vercel deployment assets (chunks, MS2 tokenizer, Model B RoPE weights).
+    Writes the Vercel deployment assets (chunks, MS2 tokenizer, ranked MS2 model weights).
     """
     from pathlib import Path
     from src.ms3.web_export import export_web_assets
 
     result = export_web_assets(
         repo_root=Path.cwd(),
-        model_b_checkpoint=None if args.skip_model_b else Path(args.model_b_checkpoint),
+        export_models=not args.skip_models,
         normalized_dir=Path(args.input_dir),
     )
     print(f"[export-web] chunks={result.chunk_count} path={result.chunks_path}")
     print(f"[export-web] tokenizer={result.tokenizer_path}")
-    print(f"[export-web] model_b={result.model_b_path}")
+    for name, path in result.model_paths.items():
+        print(f"[export-web] model={name} path={path}")
+    print(f"[export-web] default_model={result.default_model}")
 
 def train_ms2_web(args):
     """
@@ -102,10 +104,9 @@ def main():
     select_parser.add_argument("--seed", type=int, default=42)
 
     # Vercel web assets parser
-    export_parser = subparsers.add_parser("export-web", help="Export chunks + MS2 Model B (RoPE) weights for the Vercel site in web/")
+    export_parser = subparsers.add_parser("export-web", help="Export chunks + the ranked MS2 models' weights for the Vercel site in web/")
     export_parser.add_argument("--input_dir", type=str, default="data/interim/normalized", help="Directory containing MS1 normalized transcripts")
-    export_parser.add_argument("--model_b_checkpoint", type=str, default="experiments/ms2/model_b/42/checkpoints/best.weights.h5", help="Trained Model B Keras weights")
-    export_parser.add_argument("--skip_model_b", action="store_true", help="Only export the transcript chunks")
+    export_parser.add_argument("--skip_models", action="store_true", help="Only export the transcript chunks")
 
     # Streamlit parser
     run_parser = subparsers.add_parser("run-app", help="Run the Streamlit Web UI")

@@ -1,21 +1,27 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 tf = pytest.importorskip("tensorflow")
 
-from ms3web.model_b import BOS_ID, EOS_ID, SEP_ID, ModelBNumpy, RoPE  # noqa: E402
+from ms3web.seq2seq import BOS_ID, EOS_ID, SEP_ID, RoPE, Seq2SeqTransformer  # noqa: E402
 from src.ms2.models.transformer.rope import RoPE as TFRoPE  # noqa: E402
-from src.ms3.models.model_b_export import build_model_b, model_b_weight_dict  # noqa: E402
+from src.ms3.models.ms2_web_export import build_model, weight_dict  # noqa: E402
+from src.ms3.models.ms2_web_selection import build_candidate  # noqa: E402
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-@pytest.fixture(scope="module")
-def models():
+@pytest.fixture(scope="module", params=("model_b", "transformer"))
+def models(request):
     tf.keras.utils.set_random_seed(7)
-    tf_model = build_model_b()
-    np_model = ModelBNumpy(model_b_weight_dict(tf_model, dtype="float32"))
-    return tf_model, np_model
+    tf_model = build_model(request.param, repo_root=REPO_ROOT)
+    _, forward = build_candidate(request.param, REPO_ROOT)
+    np_model = Seq2SeqTransformer(weight_dict(request.param, tf_model, dtype="float32"))
+    return request.param, tf_model, forward, np_model
 
 
 def _batch(rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
@@ -34,28 +40,27 @@ def test_rope_tables_match_tensorflow() -> None:
     np.testing.assert_allclose(RoPE(64, 48, 10000.0)(x, start=5), expected, atol=1e-5)
 
 
+def test_positional_mode_matches_architecture(models) -> None:
+    name, _, _, np_model = models
+    assert np_model.positional_mode == {"model_b": "rope", "transformer": "sinusoidal"}[name]
+
+
 def test_teacher_forced_logits_match_tensorflow(models) -> None:
-    tf_model, np_model = models
+    _, tf_model, forward, np_model = models
     enc, dec = _batch(np.random.default_rng(1))
-    expected = tf_model((tf.constant(enc), tf.constant(dec)), training=False)["logits"]
+    expected = forward(
+        tf_model,
+        {"encoder_input_ids": tf.constant(enc), "decoder_input_ids": tf.constant(dec)},
+        False,
+    ).numpy()
     actual = np_model.logits(enc, dec)
     # Compare non-padding decoder positions only.
     for row, length in ((0, 12), (1, 6)):
-        np.testing.assert_allclose(
-            actual[row, :length], expected.numpy()[row, :length], atol=2e-3, rtol=1e-3
-        )
-
-
-def test_encoder_states_match_tensorflow(models) -> None:
-    tf_model, np_model = models
-    enc, _ = _batch(np.random.default_rng(2))
-    expected, _, _ = tf_model.encoder(tf.constant(enc), training=False)
-    actual, mask = np_model.encode(enc)
-    np.testing.assert_allclose(actual[mask], expected.numpy()[mask], atol=1e-3)
+        np.testing.assert_allclose(actual[row, :length], expected[row, :length], atol=2e-3, rtol=1e-3)
 
 
 def test_kv_cached_greedy_matches_full_recompute(models) -> None:
-    _, np_model = models
+    _, _, _, np_model = models
     enc, _ = _batch(np.random.default_rng(3))
     result = np_model.greedy_decode(list(enc[0]), max_length=8, max_repeat=None)
     tokens = [BOS_ID]

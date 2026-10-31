@@ -17,6 +17,8 @@ const els = {
   topKOut: $("top_k_out"),
   rerank: $("use_reranking"),
   genSet: $("gen_mode_set"),
+  ms2Model: $("ms2_model"),
+  modelMeta: $("model-meta"),
   modelStatus: $("model-status"),
   llmStatus: $("llm-status"),
   sidebar: $("sidebar"),
@@ -27,6 +29,9 @@ const els = {
 // messages: what the chat window renders.
 let state = { history: [], messages: [] };
 let ms2Available = false;
+let ms2Label = "MS2 model";
+let ms2Models = [];
+let savedMs2Model = null;
 
 function save() {
   try {
@@ -53,6 +58,7 @@ function load() {
       if (radio) radio.checked = true;
     }
     els.rerank.checked = Boolean(s.use_reranking);
+    savedMs2Model = s.ms2_model || null;
   } catch (_) { /* ignore corrupt or blocked storage */ }
 }
 
@@ -64,6 +70,7 @@ function currentSettings() {
     top_k: Number(els.topK.value),
     generation_mode: ms2Available ? mode : "llm_only",
     use_reranking: ms2Available && els.rerank.checked,
+    ms2_model: ms2Available ? els.ms2Model.value : null,
   };
 }
 
@@ -91,12 +98,12 @@ function renderMessage(msg) {
     const llm = el("div", "pane llm");
     llm.append(el("h3", null, "LLM response"), textBlock(msg.llm_answer || ""));
     const ms2 = el("div", "pane ms2");
-    ms2.append(el("h3", null, "MS2 Model B (RoPE) response"), textBlock(msg.ms2_answer || ""));
+    ms2.append(el("h3", null, `${msg.ms2_label || ms2Label} response`), textBlock(msg.ms2_answer || ""));
     split.append(llm, ms2);
     bubble.append(split);
   } else if (msg.role === "assistant" && msg.mode === "ms2_only") {
     const pane = el("div", "pane ms2");
-    pane.append(el("h3", null, "MS2 Model B (RoPE) response"), textBlock(msg.content));
+    pane.append(el("h3", null, `${msg.ms2_label || ms2Label} response`), textBlock(msg.content));
     bubble.append(pane);
   } else {
     bubble.append(textBlock(msg.content));
@@ -119,13 +126,13 @@ function renderLogs(msg) {
     ["Memory strategy", logs.memory_strategy],
     ["Prompt strategy", logs.prompt_type],
     ["Generation mode", logs.generation_mode],
-    ["Model B re-ranking", String(logs.reranking)],
+    ["MS2 re-ranking", String(logs.reranking)],
     ["LLM", logs.llm_provider || "—"],
     ["History turns stored", String(logs.history_turns)],
     ["Timings (ms)", Object.entries(logs.timings_ms || {}).map(([k, v]) => `${k.replace("_ms", "")}=${v}`).join(" · ")],
   ];
   if (logs.ms2_window && logs.ms2_window.episode) {
-    rows.push(["Model B window", `${logs.ms2_window.episode} #${logs.ms2_window.chunk_id} (mean log-prob ${logs.ms2_window.mean_log_prob})`]);
+    rows.push(["MS2 answer window", `${logs.ms2_window.episode} #${logs.ms2_window.chunk_id} (mean log-prob ${logs.ms2_window.mean_log_prob})`]);
   }
   if (logs.llm_errors && logs.llm_errors.length) rows.push(["LLM errors", logs.llm_errors.join("; ")]);
   for (const [k, v] of rows) {
@@ -147,7 +154,7 @@ function renderLogs(msg) {
       const head = el("div", "src-head");
       const title = el("b", null, `${s.episode} · #${s.chunk_id}`);
       title.dir = "auto";
-      const scores = s.rope_score === null ? `BM25 ${s.bm25}` : `RoPE ${s.rope_score} · BM25 ${s.bm25}`;
+      const scores = s.ms2_score == null ? `BM25 ${s.bm25}` : `MS2 ${s.ms2_score} · BM25 ${s.bm25}`;
       head.append(title, el("span", null, scores));
       const preview = el("div", "preview", s.preview + "…");
       preview.dir = "auto";
@@ -204,6 +211,7 @@ async function ask(question) {
       standalone_query: data.standalone_query,
       sources: data.sources,
       logs: data.logs,
+      ms2_label: ms2Label,
     };
     state.messages.push(msg);
     // Same rule as the Streamlit app: hybrid turns store the LLM answer.
@@ -230,14 +238,33 @@ async function ask(question) {
   }
 }
 
+function showModel() {
+  const model = ms2Models.find((m) => m.model === els.ms2Model.value);
+  if (!model) return;
+  ms2Label = model.display_name;
+  els.modelMeta.textContent = `${model.description} · ${(model.parameter_count / 1e6).toFixed(2)}M params · positions: ${model.positional_encoding}`;
+  els.modelStatus.textContent = `Loaded · dev token-F1 ${model.dev_token_f1} · EM ${model.dev_em}`;
+  els.modelStatus.className = "model-status ok";
+}
+
 async function loadConfig() {
   try {
     const res = await fetch("/api/config");
     const cfg = await res.json();
-    ms2Available = Boolean(cfg.ms2_model_b_available);
-    els.modelStatus.textContent = ms2Available
-      ? `Loaded · positional encoding: ${cfg.ms2_positional_encoding}`
-      : "Weights not deployed. Run `python -m src.cli.ms3 export-web`.";
+    ms2Available = Boolean(cfg.ms2_available);
+    ms2Models = [...(cfg.ms2_models || [])].sort((a, b) => a.rank - b.rank);
+    els.ms2Model.replaceChildren(
+      ...ms2Models.map((m) => {
+        const best = m.model === cfg.ms2_default ? " · best" : "";
+        const option = el("option", null, `${m.display_name}${best}`);
+        option.value = m.model;
+        return option;
+      })
+    );
+    const wanted = ms2Models.some((m) => m.model === savedMs2Model) ? savedMs2Model : cfg.ms2_default;
+    if (wanted) els.ms2Model.value = wanted;
+    showModel();
+    if (!ms2Available) els.modelStatus.textContent = "Weights not deployed. Run `python -m src.cli.ms3 export-web`.";
     els.modelStatus.className = "model-status " + (ms2Available ? "ok" : "off");
     els.llmStatus.textContent = cfg.llm_providers.length
       ? `LLM providers: ${cfg.llm_providers.join(" → ")} · ${cfg.chunks} chunks indexed`
@@ -247,6 +274,7 @@ async function loadConfig() {
     els.modelStatus.className = "model-status off";
   }
   els.genSet.classList.toggle("disabled", !ms2Available);
+  els.ms2Model.closest("label").classList.toggle("disabled", !ms2Available);
   els.rerank.closest("label").classList.toggle("disabled", !ms2Available);
 }
 
@@ -272,6 +300,7 @@ function autoGrow() {
 }
 els.question.addEventListener("input", autoGrow);
 
+els.ms2Model.addEventListener("change", showModel);
 els.topK.addEventListener("input", () => { els.topKOut.textContent = els.topK.value; });
 for (const input of document.querySelectorAll("select, input")) input.addEventListener("change", save);
 

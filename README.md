@@ -24,7 +24,7 @@ In practice, that means this repo must always support:
 3. Implement and run milestone pipelines through `src/cli/` entrypoints.
 4. Track experiments in `experiments/` and document results in `docs/reports/`.
 
-Current status: Milestone 3 is currently active. The final website is deployed on **Vercel** from `web/` (see [`web/README.md`](web/README.md)), with the MS2 RoPE Transformer (Model B) integrated for re-ranking and hybrid generation. The Streamlit app in `src/ms3/app/` remains for local development.
+Current status: Milestone 3 is currently active. The final website is deployed on **Vercel** from `web/` (see [`web/README.md`](web/README.md)), with the best MS2 model (Model A, chosen by dev token-F1 over all four MS2 models; Model B RoPE and the vanilla Transformer selectable) integrated for re-ranking and hybrid generation. The Streamlit app in `src/ms3/app/` remains for local development.
 
 ## Project Scope
 
@@ -147,8 +147,9 @@ python -m src.cli.ms2 train-rnn
 python -m src.cli.ms2 evaluate-transformer
 python -m src.cli.ms3 build-index
 python -m src.cli.ms3 run-rag
-python -m src.cli.ms3 train-model-b   # MS2 Model B (RoPE) checkpoint for the website
-python -m src.cli.ms3 export-web      # chunks + Model B weights into web/ms3web/assets/
+python -m src.cli.ms3 train-ms2-web   # train all four MS2 models for the website
+python -m src.cli.ms3 select-ms2-web  # rank them on dev (docs/reports/ms3_web_model_selection.md)
+python -m src.cli.ms3 export-web      # chunks + ranked MS2 weights into web/ms3web/assets/
 python web/dev_server.py              # local preview of the Vercel site
 streamlit run src/ms3/app/app.py
 ```

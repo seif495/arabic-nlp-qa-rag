@@ -1,17 +1,21 @@
-"""NumPy inference port of MS2 Model B (RoPE encoder-decoder Transformer).
+"""NumPy inference port of the MS2 encoder-decoder Transformers.
 
 TensorFlow does not fit inside a Vercel Python function, so the website runs
-Model B with the weights exported by ``python -m src.cli.ms3 export-web``.
-The maths mirrors ``src/ms2/models/transformer`` exactly (ADR §3):
+the selected MS2 Transformer with weights exported by
+``python -m src.cli.ms3 export-web``. One engine covers both MS2 Transformers,
+switched by ``meta.*`` flags in the exported ``.npz``:
 
-- shared token embedding scaled by ``sqrt(d_model)``, tied output projection;
-- pre-LN encoder/decoder layers with exact-erf GELU feed-forward blocks;
-- RoPE (``d_head = 48``, ``theta = 10000``) rotates Q/K of encoder
-  self-attention and decoder masked self-attention; V and cross-attention
-  are never rotated (``docs/fs/ms2/ms2-rope-contract.md``).
+- ``model_b`` (``src/ms2/models/transformer/model_b.py``, ADR §3): token
+  embedding scaled by ``sqrt(d_model)`` and tied to the output projection,
+  final LayerNorm on both stacks, and RoPE (``d_head = 48``, ``theta = 10000``)
+  on Q/K of encoder self-attention and decoder masked self-attention only
+  (``docs/fs/ms2/ms2-rope-contract.md``);
+- ``transformer`` (``src/ms2/models/transformer/model.py``): vanilla model with
+  additive sinusoidal positions, an untied output projection, and a final
+  LayerNorm on the decoder only.
 
-``tests/web/test_model_b_parity.py`` checks this port against the TensorFlow
-model.
+Both are pre-LN with exact-erf GELU feed-forward blocks.
+``tests/web/test_seq2seq_parity.py`` checks this port against TensorFlow.
 """
 
 from __future__ import annotations
@@ -67,6 +71,20 @@ class RoPE:
         out[..., 0::2] = x_even * cos - x_odd * sin
         out[..., 1::2] = x_even * sin + x_odd * cos
         return out
+
+
+def sinusoidal_table(max_length: int, d_model: int) -> np.ndarray:
+    """Same table as ``src/ms2/models/transformer/positional_encoding.py``."""
+    positions = np.arange(max_length)[:, None]
+    dims = np.arange(d_model)[None, :]
+    angles = positions / np.power(10000.0, (2 * (dims // 2)) / np.float32(d_model))
+    table = np.zeros((max_length, d_model), dtype=np.float32)
+    table[:, 0::2] = np.sin(angles[:, 0::2])
+    table[:, 1::2] = np.cos(angles[:, 1::2])
+    return table
+
+
+POSITIONAL_MODES = {0: "none", 1: "rope", 2: "sinusoidal"}
 
 
 # ---------------------------------------------------------------------------
@@ -264,8 +282,8 @@ class DecodeResult:
     mean_log_prob: float
 
 
-class ModelBNumpy:
-    """Inference-only Model B. Build with :meth:`load` from an exported ``.npz``."""
+class Seq2SeqTransformer:
+    """Inference-only MS2 Transformer. Build with :meth:`load` from an exported ``.npz``."""
 
     def __init__(self, weights: dict[str, np.ndarray]) -> None:
         w = {k: np.asarray(v, dtype=np.float32) for k, v in weights.items()}
@@ -274,13 +292,23 @@ class ModelBNumpy:
         self.n_heads = int(meta["n_heads"])
         self.d_head = self.d_model // self.n_heads
         self.eps = meta["ln_epsilon"]
-        self.theta_base = meta["rope_theta_base"]
+        self.theta_base = meta.get("rope_theta_base", 10000.0)
         self.enc_max_length = int(meta["encoder_max_length"])
         self.dec_max_length = int(meta["decoder_max_length"])
-        self.use_rope = bool(meta["use_rope"])
+        self.positional_mode = POSITIONAL_MODES[int(meta["positional_mode"])]
+        self.use_rope = self.positional_mode == "rope"
         self.embedding = w["embedding"]
-        self.output_bias = w["output_bias"]
+        self.tied_output = bool(meta.get("tied_output", 1))
+        if self.tied_output:
+            self.output_bias = w["output_bias"]
+        else:
+            self.output_projection = self._dense(w, "output_projection")
         self.scale = np.float32(np.sqrt(self.d_model))
+        self.position_table = (
+            sinusoidal_table(int(meta["sinusoidal_max_length"]), self.d_model)
+            if self.positional_mode == "sinusoidal"
+            else None
+        )
 
         enc_rope = self._rope(self.enc_max_length)
         dec_rope = self._rope(self.dec_max_length)
@@ -293,7 +321,9 @@ class ModelBNumpy:
             )
             for i in range(int(meta["n_encoder_layers"]))
         ]
-        self.encoder_final_ln = self._ln(w, "encoder.final_ln")
+        self.encoder_final_ln = (
+            self._ln(w, "encoder.final_ln") if meta.get("encoder_final_ln", 1) else None
+        )
         self.decoder_layers = [
             DecoderLayer(
                 ln_self=self._ln(w, f"decoder.{i}.ln_self"),
@@ -308,7 +338,7 @@ class ModelBNumpy:
         self.decoder_final_ln = self._ln(w, "decoder.final_ln")
 
     @classmethod
-    def load(cls, path: str | Path) -> ModelBNumpy:
+    def load(cls, path: str | Path) -> Seq2SeqTransformer:
         with np.load(path) as data:
             return cls({key: data[key] for key in data.files})
 
@@ -338,8 +368,11 @@ class ModelBNumpy:
 
     # -- forward ------------------------------------------------------------
 
-    def embed(self, ids: np.ndarray) -> np.ndarray:
-        return self.embedding[ids] * self.scale
+    def embed(self, ids: np.ndarray, start: int = 0) -> np.ndarray:
+        x = self.embedding[ids] * self.scale
+        if self.position_table is not None:
+            x = x + self.position_table[start : start + ids.shape[-1]]
+        return x
 
     def encode(self, encoder_ids: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Return ``(encoder_output[B, L, d_model], padding_mask[B, L])``."""
@@ -348,7 +381,9 @@ class ModelBNumpy:
         x = self.embed(encoder_ids)
         for layer in self.encoder_layers:
             x = layer(x, mask)
-        return self.encoder_final_ln(x), mask
+        if self.encoder_final_ln is not None:
+            x = self.encoder_final_ln(x)
+        return x, mask
 
     def logits(self, encoder_ids: np.ndarray, decoder_ids: np.ndarray) -> np.ndarray:
         """Teacher-forced logits ``[B, L_dec, vocab]`` (same as the Keras ``call``)."""
@@ -361,7 +396,9 @@ class ModelBNumpy:
         return self._project(self.decoder_final_ln(x))
 
     def _project(self, x: np.ndarray) -> np.ndarray:
-        return x @ self.embedding.T + self.output_bias
+        if self.tied_output:
+            return x @ self.embedding.T + self.output_bias
+        return self.output_projection(x)
 
     def greedy_decode(
         self,
@@ -369,7 +406,7 @@ class ModelBNumpy:
         max_length: int | None = None,
         max_repeat: int | None = 3,
     ) -> DecodeResult:
-        """KV-cached greedy decoding; RoPE positions advance with each step.
+        """KV-cached greedy decoding; positions (RoPE or sinusoidal) advance per step.
 
         ``max_repeat`` stops a degenerate loop once the same token has been
         emitted that many times in a row (``None`` disables the guard).
@@ -381,7 +418,7 @@ class ModelBNumpy:
         output: list[int] = []
         log_probs: list[float] = []
         for step in range(max_length):
-            x = self.embed(np.asarray([[token]]))
+            x = self.embed(np.asarray([[token]]), start=step)
             for layer, cache in zip(self.decoder_layers, caches, strict=True):
                 x = layer(x, memory, memory_mask, None, start=step, cache=cache)
             logits = self._project(self.decoder_final_ln(x))[0, -1]

@@ -53,7 +53,9 @@ SUMMARY_NAME = "web_training_summary_v001.json"
 SELECTION_JSON = Path("experiments/ms2/ms3_web_model_selection_v001.json")
 SELECTION_REPORT = Path("docs/reports/ms3_web_model_selection.md")
 VOCAB_SIZE = 4096
-EVAL_MAX_DECODE = 48
+# Longest dev reference is 20 tokens (incl. EOS); 24 leaves headroom.
+EVAL_MAX_DECODE = 24
+EVAL_NAME = "web_dev_eval_v001.json"
 DESCRIPTIONS = {
     "model_a": "Tri-encoder RNN, gated merge + FiLM-LSTM decoder (ADR §2)",
     "rnn_model": "Config-driven RNN variant (branches + FiLM decoder stack)",
@@ -320,9 +322,13 @@ def greedy_decode_batch(model: Any, forward: Callable[..., Any], batch: dict, ma
     out = np.zeros((n, max_len), dtype=np.int32)
     done = np.zeros(n, dtype=bool)
     inputs = {k: tf.constant(v) for k, v in batch.items() if k != "decoder_input_ids"}
+
+    @tf.function(reduce_retracing=True)
+    def step_argmax(feed: dict, t: Any) -> Any:
+        return tf.argmax(forward(model, feed, False)[:, t, :], axis=-1, output_type=tf.int32)
+
     for t in range(min(max_len, l_dec)):
-        logits = forward(model, {**inputs, "decoder_input_ids": tf.constant(dec)}, False)
-        nxt = np.argmax(logits[:, t, :].numpy(), axis=-1).astype(np.int32)
+        nxt = step_argmax({**inputs, "decoder_input_ids": tf.constant(dec)}, tf.constant(t)).numpy()
         nxt[done] = 0
         out[:, t] = nxt
         done |= nxt == EOS_ID
@@ -338,6 +344,10 @@ def evaluate_candidate(repo_root: Path, name: str, seed: int = 42, batch_size: i
     from src.ms2.metrics.scoring import bleu1, char_edit_distance_normalized, exact_match, token_f1
 
     repo_root = repo_root.resolve()
+    cached = run_dir(repo_root, name, seed) / EVAL_NAME
+    ckpt = checkpoint_path(repo_root, name, seed)
+    if cached.exists() and cached.stat().st_mtime > ckpt.stat().st_mtime:
+        return CandidateScore(**json.loads(cached.read_text(encoding="utf-8")))
     tokenizer = load_tokenizer(repo_root=repo_root)
     model, forward = load_trained(name, repo_root, seed)
     dev = load_cache(repo_root, "dev")
@@ -357,7 +367,7 @@ def evaluate_candidate(repo_root: Path, name: str, seed: int = 42, batch_size: i
     refs = [text(row) for row in dev["decoder_target_ids"]]
 
     summary = json.loads((run_dir(repo_root, name, seed) / SUMMARY_NAME).read_text(encoding="utf-8"))
-    return CandidateScore(
+    score = CandidateScore(
         model=name,
         description=DESCRIPTIONS[name],
         parameter_count=summary["parameter_count"],
@@ -371,6 +381,9 @@ def evaluate_candidate(repo_root: Path, name: str, seed: int = 42, batch_size: i
         dev_bleu1=round(float(np.mean([bleu1(p, r) for p, r in zip(preds, refs, strict=True)])), 4),
         train_minutes=summary["wall_clock_minutes"],
     )
+    cached.write_text(json.dumps(asdict(score), indent=2) + "\n", encoding="utf-8")
+    print(f"[select-ms2-web] evaluated model={name} dev_token_f1={score.dev_token_f1} dev_em={score.dev_em}", flush=True)
+    return score
 
 
 def rank(scores: list[CandidateScore]) -> list[CandidateScore]:
@@ -391,11 +404,12 @@ def select_model(repo_root: Path, seed: int = 42) -> list[CandidateScore]:
     payload = {"selected": ranked[0].model, "metric": "dev_token_f1", "seed": seed, "candidates": [asdict(s) for s in ranked]}
     (repo_root / SELECTION_JSON).parent.mkdir(parents=True, exist_ok=True)
     (repo_root / SELECTION_JSON).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    (repo_root / SELECTION_REPORT).write_text(render_report(ranked), encoding="utf-8")
+    n_dev = len(load_cache(repo_root, "dev")["encoder_input_ids"])
+    (repo_root / SELECTION_REPORT).write_text(render_report(ranked, n_dev), encoding="utf-8")
     return ranked
 
 
-def render_report(ranked: list[CandidateScore]) -> str:
+def render_report(ranked: list[CandidateScore], n_dev: int = 414) -> str:
     rows = "\n".join(
         f"| {i} | `{s.model}` | {s.description} | {s.parameter_count:,} | {s.best_step} | {s.best_dev_loss:.3f} "
         f"| {s.dev_em:.3f} | {s.dev_token_f1:.3f} | {s.dev_char_edit_distance:.3f} | {s.dev_bleu1:.3f} | {s.train_minutes:.1f} |"
@@ -415,5 +429,15 @@ by dev token-F1, then EM, then dev loss.
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 {rows}
 
-**Selected for the website:** `{ranked[0].model}`.
+**Selected for the website:** `{ranked[0].model}`. It is the default MS2 model
+on the site. The other candidates that have a NumPy web runtime (`model_a`,
+`model_b`, `transformer`) stay selectable in the UI; `rnn_model` has no web
+runtime.
+
+Notes:
+
+- The dev split has {n_dev} questions, so gaps of about 0.01 token-F1 are small.
+  Read the ranking together with the other metrics, not as a decisive win.
+- Dev loss and answer quality disagree: the lowest dev loss does not imply the
+  best greedy answers. That is why selection uses decoded-answer metrics.
 """

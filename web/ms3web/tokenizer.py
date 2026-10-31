@@ -6,7 +6,7 @@ from pathlib import Path
 
 import sentencepiece as spm
 
-from ms3web.model_b import BOS_ID, EOS_ID, PAD_ID, SEP_ID
+from ms3web.seq2seq import BOS_ID, EOS_ID, PAD_ID, SEP_ID
 
 SPECIAL_IDS = frozenset({PAD_ID, BOS_ID, EOS_ID, SEP_ID})
 

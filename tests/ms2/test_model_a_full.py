@@ -6,6 +6,7 @@ import pytest
 
 tf = pytest.importorskip("tensorflow")
 
+from src.ms2.models.rnn.film_generator import D_DEC
 from src.ms2.models.rnn.film_lstm_decoder import FiLMLSTMDecoder
 from src.ms2.models.rnn.embedding import SharedTokenEmbedding
 from src.ms2.models.rnn.model_a import ModelA, parameter_audit
@@ -17,8 +18,8 @@ class TestModelAFull(unittest.TestCase):
         decoder = FiLMLSTMDecoder(emb)
         dec_ids = tf.ones((2, 5), dtype=tf.int32)
         z = tf.random.normal((2, 192))
-        gamma = tf.ones((2, 256))
-        beta = tf.zeros((2, 256))
+        gamma = tf.ones((2, D_DEC))
+        beta = tf.zeros((2, D_DEC))
         logits = decoder(dec_ids, z, gamma, beta)
         self.assertEqual(tuple(logits.shape), (2, 5, 4096))
 

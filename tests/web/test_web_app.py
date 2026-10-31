@@ -8,8 +8,9 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from ms3web import chat as chat_module  # noqa: E402
 from ms3web.chat import ChatSettings, RagEngine, format_history  # noqa: E402
+from ms3web.ms2 import TransformerRuntime  # noqa: E402
 from ms3web.llm import LLMClient, LLMReply, LLMUnavailableError  # noqa: E402
-from ms3web.model_b import BOS_ID, ModelBNumpy  # noqa: E402
+from ms3web.seq2seq import BOS_ID, Seq2SeqTransformer  # noqa: E402
 from ms3web.retrieval import BM25Retriever, Chunk, tokenize  # noqa: E402
 
 CHUNKS = [
@@ -35,7 +36,7 @@ class FakeLLM(LLMClient):
         return LLMReply(self.answer, "groq", "fake")
 
 
-def tiny_model_b() -> ModelBNumpy:
+def tiny_model_b() -> Seq2SeqTransformer:
     rng = np.random.default_rng(0)
     d, ff, vocab = 96, 64, 64
     w: dict[str, np.ndarray] = {
@@ -61,9 +62,9 @@ def tiny_model_b() -> ModelBNumpy:
     attn("decoder.0.self_attn"), attn("decoder.0.cross_attn")
     dense("decoder.0.ffn.inner", d, ff), dense("decoder.0.ffn.outer", ff, d), ln("decoder.final_ln")
     meta = dict(d_model=d, n_heads=2, n_encoder_layers=1, n_decoder_layers=1, ln_epsilon=1e-3,
-                use_rope=1, rope_theta_base=10000.0, encoder_max_length=420, decoder_max_length=64)
+                positional_mode=1, rope_theta_base=10000.0, encoder_max_length=420, decoder_max_length=64)
     w.update({f"meta.{k}": np.asarray(v) for k, v in meta.items()})
-    return ModelBNumpy(w)
+    return Seq2SeqTransformer(w)
 
 
 class FakeTokenizer:
@@ -81,11 +82,14 @@ class FakeTokenizer:
         return [self.encode(text)]
 
 
+TINY_INFO = {"model": "model_b", "display_name": "Model B (RoPE Transformer)", "dev_token_f1": 0.0, "dev_em": 0.0}
+
+
 def make_engine(llm: LLMClient | None = None, with_ms2: bool = True) -> RagEngine:
     return RagEngine(
         BM25Retriever(CHUNKS),
-        tiny_model_b() if with_ms2 else None,
-        FakeTokenizer() if with_ms2 else None,
+        {"model_b": TransformerRuntime(tiny_model_b(), FakeTokenizer(), TINY_INFO)} if with_ms2 else {},
+        "model_b" if with_ms2 else None,
         llm or FakeLLM(),
     )
 
@@ -124,7 +128,7 @@ def test_hybrid_mode_runs_model_b_rope_with_reranking() -> None:
     assert result.llm_answer == "شاه جهان"
     assert result.ms2_answer
     assert result.logs["reranking"] is True
-    assert all(source["rope_score"] is not None for source in result.sources)
+    assert all(source["ms2_score"] is not None for source in result.sources)
 
 
 def test_ms2_only_mode_works_without_llm_keys() -> None:
@@ -171,8 +175,9 @@ def test_api_endpoints(monkeypatch: pytest.MonkeyPatch) -> None:
     client = TestClient(api_index.app)
 
     config = client.get("/api/config").json()
-    assert config["ms2_model_b_available"] is True
-    assert config["ms2_positional_encoding"] == "rope"
+    assert config["ms2_available"] is True
+    assert config["ms2_default"] == "model_b"
+    assert [m["model"] for m in config["ms2_models"]] == ["model_b"]
 
     response = client.post(
         "/api/chat",

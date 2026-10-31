@@ -47,6 +47,7 @@ class ChatRequest(BaseModel):
     generation_mode: Literal["llm_only", "ms2_only", "hybrid"] = "llm_only"
     use_reranking: bool = False
     top_k: int = Field(default=6, ge=1, le=15)
+    ms2_model: Literal["model_a", "model_b", "transformer"] | None = None
 
 
 @app.get("/api/health")
@@ -62,8 +63,9 @@ def config() -> dict:
         "memory_strategies": list(MEMORY_STRATEGIES),
         "generation_modes": list(GENERATION_MODES),
         "llm_providers": engine.llm.providers,
-        "ms2_model_b_available": engine.ms2_available,
-        "ms2_positional_encoding": "rope" if engine.ms2_available and engine.model_b.use_rope else None,
+        "ms2_available": engine.ms2_available,
+        "ms2_default": engine.default_ms2,
+        "ms2_models": [runtime.info for runtime in engine.ms2_models.values()],
         "chunks": len(engine.retriever.chunks),
         "episodes": sorted({chunk.episode for chunk in engine.retriever.chunks}),
     }
@@ -81,6 +83,7 @@ def chat(request: ChatRequest) -> dict:
             generation_mode=request.generation_mode,
             use_reranking=request.use_reranking,
             top_k=request.top_k,
+            ms2_model=request.ms2_model,
         ),
     )
     return {

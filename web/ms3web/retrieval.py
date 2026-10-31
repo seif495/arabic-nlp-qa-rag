@@ -3,8 +3,8 @@
 The Streamlit build embedded chunks with ``paraphrase-multilingual-MiniLM``
 inside ChromaDB. PyTorch + sentence-transformers exceed the Vercel function
 size limit, so the web build ranks the same chunks with Okapi BM25 over
-light-stemmed Arabic tokens instead. Model B (RoPE) can then re-rank the
-candidates, mirroring the MS3 ``MS2Reranker`` flow.
+light-stemmed Arabic tokens instead. the selected MS2 model can then
+re-rank the candidates, mirroring the MS3 ``MS2Reranker`` flow.
 """
 
 from __future__ import annotations
@@ -68,7 +68,7 @@ class Chunk:
 class ScoredChunk:
     chunk: Chunk
     score: float
-    rope_score: float | None = None
+    ms2_score: float | None = None
 
 
 class BM25Retriever:
