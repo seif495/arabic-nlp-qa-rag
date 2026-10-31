@@ -1,7 +1,11 @@
 """Vercel Python function: JSON API for the MS3 Arabic RAG chatbot.
 
-All ``/api/*`` paths are rewritten to this function (see ``web/vercel.json``);
-the static UI in ``web/public/`` calls ``/api/config`` and ``/api/chat``.
+Routes: ``/api/health``, ``/api/config``, ``/api/chat``. Vercel can hand this
+app a different path than the browser requested: the ``/api/index`` rewrite
+target, the bare function path, or ``/`` (classic ``api/`` functions vs. the
+FastAPI framework preset). So the UI calls the function's own path with the
+route in the query (``/api/index?op=config``), and :class:`RouteFromRequest`
+maps whatever path arrives back onto the right route.
 """
 
 # No ``from __future__ import annotations`` here: pydantic must resolve the
@@ -12,9 +16,11 @@ import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import parse_qs
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel, Field
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 WEB_ROOT = Path(__file__).resolve().parents[1]
 if str(WEB_ROOT) not in sys.path:
@@ -28,7 +34,41 @@ from ms3web.chat import (  # noqa: E402
 )
 from ms3web.prompts import TEMPLATES  # noqa: E402
 
+ROUTES = ("health", "config", "chat")
+ORIGINAL_PATH_KEY = "ms3_original_path"
+
+
+def resolve_route(path: str, query_string: bytes) -> str | None:
+    """Route name for a request, from ``?op=`` first, else the last path segment."""
+    for op in parse_qs(query_string.decode("latin-1")).get("op", []):
+        if op in ROUTES:
+            return op
+    tail = path.rstrip("/").rsplit("/", 1)[-1]
+    if tail in ROUTES:
+        return tail
+    # The bare function path; never "/" itself, which is the UI's index.html.
+    if tail in ("api", "index", "index.py"):
+        return "health"
+    return None
+
+
+class RouteFromRequest:
+    """Rewrite the ASGI path to ``/api/<route>`` before FastAPI routes it."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http":
+            route = resolve_route(scope["path"], scope.get("query_string", b""))
+            if route is not None:
+                path = f"/api/{route}"
+                scope = {**scope, "path": path, "raw_path": path.encode(), ORIGINAL_PATH_KEY: scope["path"]}
+        await self.app(scope, receive, send)
+
+
 app = FastAPI(title="Arabic NLP RAG (MS3)", docs_url="/api/docs", openapi_url="/api/openapi.json")
+app.add_middleware(RouteFromRequest)
 
 
 @lru_cache(maxsize=1)
@@ -53,8 +93,9 @@ class ChatRequest(BaseModel):
 
 
 @app.get("/api/health")
-def health() -> dict:
-    return {"status": "ok"}
+def health(request: Request) -> dict:
+    # ``path_seen`` shows what Vercel actually handed the app (for debugging routing).
+    return {"status": "ok", "path_seen": request.scope.get(ORIGINAL_PATH_KEY, request.url.path)}
 
 
 @app.get("/api/config")
