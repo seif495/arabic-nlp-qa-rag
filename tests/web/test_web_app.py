@@ -187,3 +187,21 @@ def test_api_endpoints(monkeypatch: pytest.MonkeyPatch) -> None:
     body = response.json()
     assert body["llm_answer"] == "شاه جهان" and body["ms2_answer"]
     assert client.post("/api/chat", json={"question": ""}).status_code == 422
+
+
+def test_api_works_when_loaded_from_file_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Serverless runtimes may exec the entrypoint without registering it in sys.modules."""
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[2] / "web/api/index.py"
+    spec = importlib.util.spec_from_file_location("vercel_entrypoint_under_test", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "get_engine", lambda: make_engine())
+    client = TestClient(module.app)
+    response = client.post(
+        "/api/chat", json={"question": "مين بنى تاج محل", "history": [{"user": "a", "assistant": "b"}]}
+    )
+    assert response.status_code == 200
+    assert response.json()["answer"] == "شاه جهان"

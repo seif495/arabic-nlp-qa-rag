@@ -200,7 +200,7 @@ async function ask(question) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, history: state.history, ...settings }),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`/api/chat returned HTTP ${res.status}`);
     const data = await res.json();
     const msg = {
       role: "assistant",
@@ -225,7 +225,7 @@ async function ask(question) {
     pending.remove();
     const msg = {
       role: "assistant",
-      content: "حدث خطأ غير متوقع في النظام. الرجاء المحاولة مرة أخرى لاحقاً.\nAn unexpected system error occurred. Please try again later.",
+      content: `حدث خطأ غير متوقع في النظام. الرجاء المحاولة مرة أخرى لاحقاً.\nAn unexpected system error occurred. Please try again later.\n(${err.message})`,
     };
     state.messages.push(msg);
     renderMessage(msg);
@@ -250,6 +250,7 @@ function showModel() {
 async function loadConfig() {
   try {
     const res = await fetch("/api/config");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const cfg = await res.json();
     ms2Available = Boolean(cfg.ms2_available);
     ms2Models = [...(cfg.ms2_models || [])].sort((a, b) => a.rank - b.rank);
@@ -270,7 +271,7 @@ async function loadConfig() {
       ? `LLM providers: ${cfg.llm_providers.join(" → ")} · ${cfg.chunks} chunks indexed`
       : `No LLM key configured. Only "MS2 only" mode can answer. · ${cfg.chunks} chunks indexed`;
   } catch (err) {
-    els.modelStatus.textContent = "API unreachable";
+    els.modelStatus.textContent = `API unreachable: /api/config ${err.message}`;
     els.modelStatus.className = "model-status off";
   }
   els.genSet.classList.toggle("disabled", !ms2Available);
