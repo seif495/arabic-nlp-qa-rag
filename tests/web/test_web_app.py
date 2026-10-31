@@ -205,3 +205,49 @@ def test_api_works_when_loaded_from_file_path(monkeypatch: pytest.MonkeyPatch) -
     )
     assert response.status_code == 200
     assert response.json()["answer"] == "شاه جهان"
+
+
+@pytest.mark.parametrize(
+    ("method", "url", "route"),
+    [
+        ("GET", "/api/index?op=config", "config"),  # what the UI calls
+        ("GET", "/api/index?op=index&op=config", "config"),  # rewrite + original query merged
+        ("GET", "/api/config", "config"),  # pretty URL, path preserved
+        ("GET", "/config", "config"),  # /api prefix stripped
+        ("GET", "/api/index", "health"),  # bare function path
+        ("GET", "/api/health", "health"),
+        ("GET", "/health", "health"),
+        ("POST", "/api/index?op=chat", "chat"),
+        ("POST", "/api/chat", "chat"),
+        ("POST", "/chat", "chat"),
+    ],
+)
+def test_routes_survive_any_vercel_path(monkeypatch: pytest.MonkeyPatch, method: str, url: str, route: str) -> None:
+    import api.index as api_index
+
+    monkeypatch.setattr(api_index, "get_engine", lambda: make_engine())
+    client = TestClient(api_index.app)
+    if method == "POST":
+        response = client.post(url, json={"question": "مين بنى تاج محل"})
+    else:
+        response = client.get(url)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    expected_key = {"health": "status", "config": "ms2_models", "chat": "answer"}[route]
+    assert expected_key in body
+
+
+def test_router_leaves_docs_and_root_alone() -> None:
+    from api.index import resolve_route
+
+    assert resolve_route("/", b"") is None
+    assert resolve_route("/api/docs", b"") is None
+    assert resolve_route("/api/openapi.json", b"") is None
+    assert resolve_route("/app.js", b"") is None
+
+
+def test_health_reports_path_seen(monkeypatch: pytest.MonkeyPatch) -> None:
+    import api.index as api_index
+
+    client = TestClient(api_index.app)
+    assert client.get("/api/index").json() == {"status": "ok", "path_seen": "/api/index"}

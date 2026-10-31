@@ -2,8 +2,8 @@
 
     uv run python web/dev_server.py   # http://127.0.0.1:8000
 
-On Vercel, ``vercel.json`` rewrites ``/api/*`` to ``api/index.py`` and serves
-``public/`` statically; this script reproduces that routing with uvicorn.
+On Vercel, ``public/`` is served statically and ``/api/*`` reaches
+``api/index.py`` (see ``vercel.json``); this script reproduces that with uvicorn.
 """
 
 from __future__ import annotations
