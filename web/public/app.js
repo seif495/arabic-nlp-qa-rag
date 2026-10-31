@@ -195,7 +195,7 @@ async function ask(question) {
 
   try {
     const settings = currentSettings();
-    const res = await fetch("/api/index?op=chat", {
+    const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, history: state.history, ...settings }),
@@ -249,7 +249,7 @@ function showModel() {
 
 async function loadConfig() {
   try {
-    const res = await fetch("/api/index?op=config");
+    const res = await fetch("/api/config");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const cfg = await res.json();
     ms2Available = Boolean(cfg.ms2_available);

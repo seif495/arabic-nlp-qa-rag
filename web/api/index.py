@@ -1,11 +1,13 @@
 """Vercel Python function: JSON API for the MS3 Arabic RAG chatbot.
 
-Routes: ``/api/health``, ``/api/config``, ``/api/chat``. Vercel can hand this
-app a different path than the browser requested: the ``/api/index`` rewrite
-target, the bare function path, or ``/`` (classic ``api/`` functions vs. the
-FastAPI framework preset). So the UI calls the function's own path with the
-route in the query (``/api/index?op=config``), and :class:`RouteFromRequest`
-maps whatever path arrives back onto the right route.
+Routes: ``/api/health``, ``/api/config``, ``/api/chat``. On Vercel the UI's
+requests reach this app through the ``web/vercel.json`` rewrite
+``/api/:op -> /api/index?op=:op``, so the app sees path ``/api/index`` with
+the route in ``?op=``. Vercel *replaces* the query with the destination's, so
+callers must use the pretty URLs (``/api/config``), not ``/api/index?op=...``.
+:class:`RouteFromRequest` maps whatever path arrives (``?op=``,
+``/api/<route>``, ``/<route>``) back onto the right route, which also keeps
+local runs (``web/dev_server.py``, tests) working without the rewrite.
 """
 
 # No ``from __future__ import annotations`` here: pydantic must resolve the

@@ -30,6 +30,8 @@ class LLMReply:
     text: str
     provider: str
     model: str
+    # Errors from providers tried (and failed) before this one answered.
+    fallback_errors: tuple[str, ...] = ()
 
 
 class LLMClient:
@@ -78,8 +80,8 @@ class LLMClient:
         for provider in self.providers:
             try:
                 if provider == "groq":
-                    return LLMReply(self._groq(system, user), "groq", self.groq_model)
-                return LLMReply(self._gemini(system, user), "gemini", self.gemini_model)
+                    return LLMReply(self._groq(system, user), "groq", self.groq_model, tuple(errors))
+                return LLMReply(self._gemini(system, user), "gemini", self.gemini_model, tuple(errors))
             except Exception as exc:  # noqa: BLE001 - fall through to next provider
                 errors.append(f"{provider}: {exc}")
         if not errors:
@@ -133,7 +135,8 @@ class LLMClient:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
                     return json.loads(response.read().decode("utf-8"))
             except urllib.error.HTTPError as exc:
-                last_error = RuntimeError(f"HTTP {exc.code}")
+                detail = exc.read().decode("utf-8", errors="replace")[:300]
+                last_error = RuntimeError(f"HTTP {exc.code}: {detail}")
                 if exc.code not in RETRYABLE_STATUS:
                     break
             except (urllib.error.URLError, TimeoutError) as exc:

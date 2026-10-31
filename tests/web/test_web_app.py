@@ -251,3 +251,34 @@ def test_health_reports_path_seen(monkeypatch: pytest.MonkeyPatch) -> None:
 
     client = TestClient(api_index.app)
     assert client.get("/api/index").json() == {"status": "ok", "path_seen": "/api/index"}
+
+
+def test_fallback_provider_errors_are_logged() -> None:
+    class GroqDownLLM(LLMClient):
+        def _groq(self, system: str, user: str) -> str:
+            raise RuntimeError("HTTP 401: invalid api key")
+
+        def _gemini(self, system: str, user: str) -> str:
+            return "مين بنى تاج محل" if "Standalone Query" in user else "شاه جهان"
+
+    llm = GroqDownLLM(groq_api_key="g", google_api_key="k")
+    result = make_engine(llm).answer("مين بنى تاج محل", [], ChatSettings())
+    assert result.answer == "شاه جهان"
+    assert result.logs["llm_provider"].startswith("gemini:")
+    assert result.logs["llm_errors"] == ["groq: HTTP 401: invalid api key"] * 2
+
+
+def test_ui_calls_pretty_api_urls_matching_vercel_rewrite() -> None:
+    """Verified on the live deployment: Vercel replaces the query of
+    ``/api/index?op=...`` with the rewrite's ``op=index``, so the UI must call
+    ``/api/<route>`` and let ``/api/:op -> /api/index?op=:op`` route it."""
+    import json
+    from pathlib import Path
+
+    web = Path(__file__).resolve().parents[2] / "web"
+    app_js = (web / "public/app.js").read_text(encoding="utf-8")
+    assert 'fetch("/api/config")' in app_js
+    assert 'fetch("/api/chat"' in app_js
+    assert "/api/index?op=" not in app_js
+    rewrites = json.loads((web / "vercel.json").read_text(encoding="utf-8"))["rewrites"]
+    assert {"source": "/api/:op", "destination": "/api/index?op=:op"} in rewrites
