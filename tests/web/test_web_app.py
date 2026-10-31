@@ -282,3 +282,27 @@ def test_ui_calls_pretty_api_urls_matching_vercel_rewrite() -> None:
     assert "/api/index?op=" not in app_js
     rewrites = json.loads((web / "vercel.json").read_text(encoding="utf-8"))["rewrites"]
     assert {"source": "/api/:op", "destination": "/api/index?op=:op"} in rewrites
+
+
+def test_llm_requests_send_explicit_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Live Groq answered "403 error code: 1010" (Cloudflare blocks Python-urllib's agent)."""
+    import io
+    import json
+    import urllib.request
+
+    from ms3web import llm as llm_module
+
+    seen = []
+
+    def fake_urlopen(request, timeout):
+        seen.append(request)
+        payload = {"choices": [{"message": {"content": "ok"}}]}
+        return io.BytesIO(json.dumps(payload).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    reply = LLMClient(groq_api_key="k").complete("sys", "hi")
+    assert reply.text == "ok" and reply.provider == "groq"
+    agent = seen[0].get_header("User-agent")
+    assert agent == llm_module.USER_AGENT
+    assert not agent.startswith("Python-urllib")
+    assert seen[0].get_header("Authorization") == "Bearer k"

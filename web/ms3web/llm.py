@@ -19,6 +19,9 @@ GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:ge
 DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 RETRYABLE_STATUS = frozenset({408, 429, 500, 502, 503, 504})
+# Groq sits behind Cloudflare, which rejects urllib's default
+# "Python-urllib/3.x" agent with "403 error code: 1010" before auth.
+USER_AGENT = "arabizy-ms3/1.0 (+https://github.com/seif495/arabic-nlp-qa-rag)"
 
 
 class LLMUnavailableError(RuntimeError):
@@ -128,7 +131,12 @@ class LLMClient:
             request = urllib.request.Request(
                 url,
                 data=body,
-                headers={"Content-Type": "application/json", **headers},
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "User-Agent": USER_AGENT,
+                    **headers,
+                },
                 method="POST",
             )
             try:
