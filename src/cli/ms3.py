@@ -34,6 +34,37 @@ def init_vectorstore(args):
     vsm = VectorStoreManager(persist_directory=persist_dir)
     vsm.add_documents(chunks, batch_size=100)
 
+def export_web(args):
+    """
+    Writes the Vercel deployment assets (chunks, MS2 tokenizer, Model B RoPE weights).
+    """
+    from pathlib import Path
+    from src.ms3.web_export import export_web_assets
+
+    result = export_web_assets(
+        repo_root=Path.cwd(),
+        model_b_checkpoint=None if args.skip_model_b else Path(args.model_b_checkpoint),
+        normalized_dir=Path(args.input_dir),
+    )
+    print(f"[export-web] chunks={result.chunk_count} path={result.chunks_path}")
+    print(f"[export-web] tokenizer={result.tokenizer_path}")
+    print(f"[export-web] model_b={result.model_b_path}")
+
+def train_model_b(args):
+    """
+    Trains MS2 Model B (RoPE Transformer) from the MS1 dataset for the Vercel site.
+    """
+    from pathlib import Path
+    from src.ms3.models.train_model_b_web import train_model_b_for_web
+
+    best = train_model_b_for_web(
+        repo_root=Path.cwd(),
+        budget_minutes=args.budget_minutes,
+        batch_size=args.batch_size,
+        seed=args.seed,
+    )
+    print(f"[train-model-b] best_checkpoint={best}")
+
 def run_app(args):
     """
     Boots up the Streamlit UI.
@@ -52,6 +83,18 @@ def main():
     init_parser.add_argument("--persist_dir", type=str, default="data/processed/ms3/chroma_db", help="Directory to persist the Chroma Vector Store")
     init_parser.add_argument("--num_episodes", type=int, default=13, help="Number of episodes to use (constraint: up to 13)")
 
+    # Model B (RoPE) training for the website
+    train_parser = subparsers.add_parser("train-model-b", help="Train MS2 Model B (RoPE Transformer) from the MS1 dataset (needs TensorFlow)")
+    train_parser.add_argument("--budget_minutes", type=float, default=60.0, help="Upper bound; early stopping on dev loss usually ends sooner")
+    train_parser.add_argument("--batch_size", type=int, default=16)
+    train_parser.add_argument("--seed", type=int, default=42)
+
+    # Vercel web assets parser
+    export_parser = subparsers.add_parser("export-web", help="Export chunks + MS2 Model B (RoPE) weights for the Vercel site in web/")
+    export_parser.add_argument("--input_dir", type=str, default="data/interim/normalized", help="Directory containing MS1 normalized transcripts")
+    export_parser.add_argument("--model_b_checkpoint", type=str, default="experiments/ms2/model_b/42/checkpoints/best.weights.h5", help="Trained Model B Keras weights")
+    export_parser.add_argument("--skip_model_b", action="store_true", help="Only export the transcript chunks")
+
     # Streamlit parser
     run_parser = subparsers.add_parser("run-app", help="Run the Streamlit Web UI")
     
@@ -59,6 +102,10 @@ def main():
     
     if args.command == "init-vectorstore":
         init_vectorstore(args)
+    elif args.command == "train-model-b":
+        train_model_b(args)
+    elif args.command == "export-web":
+        export_web(args)
     elif args.command == "run-app":
         run_app(args)
 

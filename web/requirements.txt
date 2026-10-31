@@ -1,0 +1,5 @@
+# Runtime dependencies of the Vercel Python function (web/api/index.py).
+# Deliberately tiny: no TensorFlow / PyTorch / LangChain (bundle size limit).
+fastapi>=0.115,<1
+numpy>=1.26,<3
+sentencepiece>=0.2.1

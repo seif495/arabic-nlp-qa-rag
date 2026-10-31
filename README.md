@@ -24,7 +24,7 @@ In practice, that means this repo must always support:
 3. Implement and run milestone pipelines through `src/cli/` entrypoints.
 4. Track experiments in `experiments/` and document results in `docs/reports/`.
 
-Current status: Milestone 3 is currently active, adding a Streamlit web application, vector store integration, and MS2 model fallback/hybrid generation.
+Current status: Milestone 3 is currently active. The final website is deployed on **Vercel** from `web/` (see [`web/README.md`](web/README.md)), with the MS2 RoPE Transformer (Model B) integrated for re-ranking and hybrid generation. The Streamlit app in `src/ms3/app/` remains for local development.
 
 ## Project Scope
 
@@ -109,7 +109,7 @@ Goal:
 - add semantic caching based on embedding similarity,
 - evaluate prompt designs and context window strategies,
 - integrate MS2 models for enhanced re-ranking and hybrid generation,
-- provide an interactive Streamlit UI.
+- provide an interactive web UI (Vercel deployment in `web/`, Streamlit for local dev).
 
 Required analyses include:
 - cache hit rate, saved model calls, threshold sensitivity,
@@ -147,6 +147,9 @@ python -m src.cli.ms2 train-rnn
 python -m src.cli.ms2 evaluate-transformer
 python -m src.cli.ms3 build-index
 python -m src.cli.ms3 run-rag
+python -m src.cli.ms3 train-model-b   # MS2 Model B (RoPE) checkpoint for the website
+python -m src.cli.ms3 export-web      # chunks + Model B weights into web/ms3web/assets/
+python web/dev_server.py              # local preview of the Vercel site
 streamlit run src/ms3/app/app.py
 ```
 
