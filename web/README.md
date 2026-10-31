@@ -34,7 +34,7 @@ web/
 4. Add these **Environment Variables**:
    | Name | Required | Notes |
    | --- | --- | --- |
-   | `GROQ_API_KEY` | recommended | primary LLM (`llama-3.3-70b-versatile`) |
+   | `GROQ_API_KEY` | recommended | primary LLM (`openai/gpt-oss-120b`; if Groq retires it, the server switches to an available model) |
    | `GOOGLE_API_KEY` | optional | fallback LLM (Gemini) |
    | `GROQ_MODEL`, `GEMINI_MODEL` | optional | override the default model ids |
 5. Click **Deploy**. Every push to `main` redeploys automatically.
