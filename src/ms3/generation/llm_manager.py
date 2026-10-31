@@ -4,8 +4,11 @@ MS3 LLM Manager
 Manages LLM instances with API-failure handling, retry mechanisms,
 and a primary → fallback strategy using free-tier models.
 
-Primary  : Groq  → llama-3.3-70b-versatile  (GROQ_API_KEY)
-Fallback : Gemini → gemini-1.5-flash         (GOOGLE_API_KEY)
+Primary  : Groq  → openai/gpt-oss-120b  (GROQ_API_KEY)
+Fallback : Gemini → gemini-2.5-flash     (GOOGLE_API_KEY)
+
+llama-3.3-70b-versatile (Groq, shut down 2026-08-16) and gemini-1.5-flash
+were retired; these are their current replacements.
 """
 
 from __future__ import annotations
@@ -19,8 +22,8 @@ from langchain_core.language_models.chat_models import BaseChatModel
 
 load_dotenv()
 
-_GROQ_MODEL = "llama-3.3-70b-versatile"
-_GEMINI_MODEL = "gemini-1.5-flash"
+_GROQ_MODEL = "openai/gpt-oss-120b"
+_GEMINI_MODEL = "gemini-2.5-flash"
 
 
 class LLMManager:
@@ -63,7 +66,7 @@ class LLMManager:
 
     @staticmethod
     def _make_groq() -> BaseChatModel:
-        """Initialise ChatGroq (llama-3.3-70b-versatile, free tier)."""
+        """Initialise ChatGroq (openai/gpt-oss-120b, free tier)."""
         from langchain_groq import ChatGroq
 
         api_key: Optional[str] = os.environ.get("GROQ_API_KEY")
@@ -76,7 +79,7 @@ class LLMManager:
 
     @staticmethod
     def _make_gemini() -> BaseChatModel:
-        """Initialise ChatGoogleGenerativeAI (gemini-1.5-flash, free tier)."""
+        """Initialise ChatGoogleGenerativeAI (gemini-2.5-flash, free tier)."""
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         api_key: Optional[str] = os.environ.get("GOOGLE_API_KEY")

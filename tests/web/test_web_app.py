@@ -306,3 +306,54 @@ def test_llm_requests_send_explicit_user_agent(monkeypatch: pytest.MonkeyPatch) 
     assert agent == llm_module.USER_AGENT
     assert not agent.startswith("Python-urllib")
     assert seen[0].get_header("Authorization") == "Bearer k"
+
+
+class _FakeGroq:
+    """Stand-in for api.groq.com: retired models 404, /models lists active ones."""
+
+    def __init__(self, active: list[str], content: str = "ok") -> None:
+        self.active = active
+        self.content = content
+        self.calls: list[tuple[str, dict | None]] = []
+
+    def __call__(self, request, timeout):
+        import io
+        import json
+        import urllib.error
+
+        payload = json.loads(request.data) if request.data else None
+        self.calls.append((request.full_url, payload))
+        if request.full_url.endswith("/models"):
+            body = {"data": [{"id": m, "active": True} for m in self.active]}
+            return io.BytesIO(json.dumps(body).encode())
+        if payload["model"] not in self.active:
+            error = {"error": {"message": f"The model `{payload['model']}` does not exist", "code": "model_not_found"}}
+            raise urllib.error.HTTPError(request.full_url, 404, "Not Found", {}, io.BytesIO(json.dumps(error).encode()))
+        return io.BytesIO(json.dumps({"choices": [{"message": {"content": self.content}}]}).encode())
+
+
+def test_groq_defaults_to_supported_reasoning_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    import urllib.request
+
+    fake = _FakeGroq(["openai/gpt-oss-120b"])
+    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    reply = LLMClient(groq_api_key="k").complete("", "hi")
+    assert (reply.provider, reply.model, reply.text) == ("groq", "openai/gpt-oss-120b", "ok")
+    _, payload = fake.calls[0]
+    assert payload["model"] == "openai/gpt-oss-120b"
+    assert payload["reasoning_effort"] == "low"
+
+
+def test_groq_switches_to_available_model_when_configured_one_is_retired(monkeypatch: pytest.MonkeyPatch) -> None:
+    import urllib.request
+
+    fake = _FakeGroq(["whisper-large-v3", "qwen/qwen3.6-27b"], content="<think>scratch</think> شاه جهان")
+    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    client = LLMClient(groq_api_key="k", groq_model="llama-3.3-70b-versatile")
+    reply = client.complete("", "hi")
+    assert (reply.model, reply.text, reply.fallback_errors) == ("qwen/qwen3.6-27b", "شاه جهان", ())
+    assert [url.rsplit("/", 1)[-1] for url, _ in fake.calls] == ["completions", "models", "completions"]
+    assert fake.calls[-1][1]["reasoning_format"] == "hidden"
+    # The replacement is remembered: no second discovery round-trip.
+    client.complete("", "again")
+    assert [url.rsplit("/", 1)[-1] for url, _ in fake.calls[3:]] == ["completions"]

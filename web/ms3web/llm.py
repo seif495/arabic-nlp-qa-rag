@@ -9,23 +9,37 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+# llama-3.3-70b-versatile was shut down on 2026-08-16; these are Groq's
+# recommended replacements (console.groq.com/docs/deprecations), in order.
+PREFERRED_GROQ_MODELS = ("openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b")
+DEFAULT_GROQ_MODEL = PREFERRED_GROQ_MODELS[0]
+NON_CHAT_MODEL_MARKERS = ("whisper", "tts", "guard", "orpheus", "playai", "compound", "embed")
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 RETRYABLE_STATUS = frozenset({408, 429, 500, 502, 503, 504})
 # Groq sits behind Cloudflare, which rejects urllib's default
 # "Python-urllib/3.x" agent with "403 error code: 1010" before auth.
 USER_AGENT = "arabizy-ms3/1.0 (+https://github.com/seif495/arabic-nlp-qa-rag)"
+_THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 class LLMUnavailableError(RuntimeError):
     """Raised when no provider is configured or every provider failed."""
+
+
+class HTTPStatusError(RuntimeError):
+    def __init__(self, status: int, body: str) -> None:
+        super().__init__(f"HTTP {status}: {body}")
+        self.status = status
+        self.body = body
 
 
 @dataclass(frozen=True)
@@ -94,20 +108,49 @@ class LLMClient:
     # -- providers ----------------------------------------------------------
 
     def _groq(self, system: str, user: str) -> str:
+        try:
+            return self._groq_chat(system, user)
+        except HTTPStatusError as exc:
+            # Groq retires models (llama-3.3-70b-versatile went away in 2026);
+            # switch to one this key can use instead of failing every call.
+            if exc.status != 404 or "model_not_found" not in exc.body:
+                raise
+            replacement = self._discover_groq_model()
+            if replacement is None or replacement == self.groq_model:
+                raise
+            self.groq_model = replacement
+            return self._groq_chat(system, user)
+
+    def _groq_chat(self, system: str, user: str) -> str:
         messages = [{"role": "user", "content": user}]
         if system:
             messages.insert(0, {"role": "system", "content": system})
-        payload = {
+        payload: dict = {
             "model": self.groq_model,
             "messages": messages,
             "temperature": self.temperature,
         }
-        data = self._post(
-            GROQ_URL,
-            payload,
-            {"Authorization": f"Bearer {self.groq_api_key}"},
-        )
-        return data["choices"][0]["message"]["content"].strip()
+        # Reasoning models: keep latency low and the reasoning out of the answer.
+        if self.groq_model.startswith("openai/gpt-oss"):
+            payload["reasoning_effort"] = "low"
+        elif self.groq_model.startswith("qwen/"):
+            payload["reasoning_format"] = "hidden"
+        data = self._request(GROQ_URL, payload, self._groq_headers())
+        content = data["choices"][0]["message"].get("content") or ""
+        return _THINK_BLOCK.sub("", content).strip()
+
+    def _groq_headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.groq_api_key}"}
+
+    def _discover_groq_model(self) -> str | None:
+        """Pick a chat model this key can use from ``GET /openai/v1/models``."""
+        data = self._request(GROQ_MODELS_URL, None, self._groq_headers())
+        available = [m["id"] for m in data.get("data", []) if m.get("active", True)]
+        for model in PREFERRED_GROQ_MODELS:
+            if model in available:
+                return model
+        chat = [m for m in available if not any(marker in m.lower() for marker in NON_CHAT_MODEL_MARKERS)]
+        return chat[0] if chat else None
 
     def _gemini(self, system: str, user: str) -> str:
         payload: dict = {
@@ -116,7 +159,7 @@ class LLMClient:
         }
         if system:
             payload["systemInstruction"] = {"parts": [{"text": system}]}
-        data = self._post(
+        data = self._request(
             GEMINI_URL.format(model=self.gemini_model),
             payload,
             {"x-goog-api-key": self.google_api_key or ""},
@@ -124,8 +167,9 @@ class LLMClient:
         parts = data["candidates"][0]["content"]["parts"]
         return "".join(part.get("text", "") for part in parts).strip()
 
-    def _post(self, url: str, payload: dict, headers: dict[str, str]) -> dict:
-        body = json.dumps(payload).encode("utf-8")
+    def _request(self, url: str, payload: dict | None, headers: dict[str, str]) -> dict:
+        """POST ``payload`` as JSON, or GET when it is ``None``; retry transient errors."""
+        body = None if payload is None else json.dumps(payload).encode("utf-8")
         last_error: Exception | None = None
         for attempt in range(self.max_retries + 1):
             request = urllib.request.Request(
@@ -137,14 +181,14 @@ class LLMClient:
                     "User-Agent": USER_AGENT,
                     **headers,
                 },
-                method="POST",
+                method="GET" if body is None else "POST",
             )
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
                     return json.loads(response.read().decode("utf-8"))
             except urllib.error.HTTPError as exc:
                 detail = exc.read().decode("utf-8", errors="replace")[:300]
-                last_error = RuntimeError(f"HTTP {exc.code}: {detail}")
+                last_error = HTTPStatusError(exc.code, detail)
                 if exc.code not in RETRYABLE_STATUS:
                     break
             except (urllib.error.URLError, TimeoutError) as exc:
